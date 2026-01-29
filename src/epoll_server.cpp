@@ -108,7 +108,7 @@ int main() {
     while(true){
 
         int n_fds = epoll_wait(epoll_fd,events.data(),MAX_EVENTS,-1);
-        //epoll_wait：等待事件发生，参数是epoll实例的文件描述符,就绪事件数组，最大事件数，超时时间(-1表示无限等待)
+        //epoll_wait：等待事件发生，参数是epoll实例的文件描述符，就绪事件数组，最大事件数，超时时间(-1表示无限等待)
         //返回值是就绪事件的数量，-1表示出错，比如被信号中断、资源临时不可用等
         if(n_fds == -1){
             perror("epoll_wait error");
