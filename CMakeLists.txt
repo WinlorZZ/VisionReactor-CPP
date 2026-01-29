@@ -13,11 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
 # 语法: file(GLOB 变量名 "路径/匹配模式")
 file(GLOB SRC_FILES "src/*.cpp")
 
-# 生成动态库
-# SHARED 关键字告诉 CMake 生成 .so (Linux) 或 .dll (Windows)
-# 语法: add_library(库名 SHARED 源文件列表)
-add_library(ConnectionPool SHARED ${SRC_FILES})
-
-# 语法: add_executable(可执行文件名 源文件路径)
-add_executable(epollServer ${SOURCES})
+# 生成可执行文件
+# 语法: add_executable(可执行文件名 源文件列表)
+add_executable(epoll_server ${SRC_FILES})
 
