@@ -10,6 +10,7 @@
 
 const int MAX_EVENTS = 1000;
 const int BUFFER_SIZE = 1024;
+// const int BUFFER_SIZE = 3;
 const int PORT = 8888;
 
 void setNonBlocking(int fd) {//设置非阻塞模式,形参是文件描述符
@@ -100,11 +101,12 @@ int main() {
         perror("epoll_ctl error");
         return -1;
     }
+
     // 准备就绪事件数组
     std::vector<struct epoll_event> events(MAX_EVENTS);//创建一个epoll_event类型的向量/数组，大小为MAX_EVENTS，用于存储就绪事件
     std::cout <<"Epoll 服务器启动，监听端口 " << PORT << std::endl;
 
-    // 7. 事件循环
+    // 7. 读取和处理事件循环
     while(true){
 
         int n_fds = epoll_wait(epoll_fd,events.data(),MAX_EVENTS,-1);
@@ -170,6 +172,7 @@ int main() {
                     //符，存储数据的缓冲区，读取的最大字节数
                     //返回值是实际读取的字节数，-1表示出错，0表示连接关闭
                     if(n > 0){
+                        std::cout << "收到分片: " << std::string(buf, n) << " (" << n << " bytes)" << std::endl;
                         write(current_fd, buf, n);
                         //write()：向文件描述符写入数据，参数分别为：文件描述符，存储数据的缓冲区，写入的字节数
                     }else if(n == 0){
