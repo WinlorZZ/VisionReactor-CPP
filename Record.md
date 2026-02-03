@@ -97,6 +97,16 @@
         - `fd` ： 指定的被管理的socket对象（文件描述符）
         - `event` : 指定的struct epoll_event *对象，表示具体的事件细节，epfd根据该事件的行为来管理socket对象（事件抽象为一个实体，根据这个实体的动作来进行，比如新增一个事件，事件有变动，事件消失）
     - 返回值 ：默认返回0，返回-1代表出错
+1. `epoll_wait()` :  等待事件发生
+    ```c++
+    int epoll_wait(int epfd, struct epoll_event *events, 
+                        int maxevents, int timeout);
+    ```
+    - `epfd` : epoll实例的文件描述符
+    - `events` : 就绪事件数组首地址（.data指向数组第一个元素）
+    - `maxevents` : 最大事件数
+    - `timeout` : 超时时间(-1表示无限等待)
+    - 返回值`numFDs` ：就绪事件的数量，-1表示出错，比如被信号中断、资源临时不可用等
 
 
 ## 关键结构体解析
@@ -157,6 +167,7 @@
         - 组合使用 (`EPOLLET | EPOLLIN`)：如 `epoll_server.cpp` 中所示，表示监听文件描述符的可读事件，并采用边缘触发模式。这意味着当有新连接到来时，只通知一次，程序需要循环调用 `accept()` 直到没有新连接。对于客户端 Socket，当有数据到来时，也只通知一次，程序需要循环调用 `read()` 直到数据读完。
     - 联合体 (Union)：ptr 和 fd 共用同一块内存。你只能用其中一个
 
+
 ## Epoll ET 模式核心逻辑
 ```c++
 // 读取逻辑标准写法
@@ -192,5 +203,59 @@ while (true) {
 
 ## 从面向过程到面向对象
 
-将整个Epoll过程
+1. 类头文件封装
+    - 对Socket的封装`Socket.h`:对应实现socket的各类行为
+    1. 使用默认的构造和析构  
+        - 对于析构，在 RAII 模式下，将所有的`close(fd)`放到析构函数中，永远不要在类的成员函数里手动 close 那个被托管的资源（除非同时把 _fd 重置为 -1），否则会导致两次关闭同一个文件而发生错误
+    1. 禁用拷贝构造
+    1. 提供Socket的行为方法
+        - `void bind(InetAddress* addr);` ：传入地址类的实例  
+            ```c++
+            void Socket::bind(const InetAddress& addr){ 
+                ... 
+                if( ::bind(fd,addr.getAddr(),addr.getAddrLen()) == -1 ){ ... } }
+            ```  
+            封装成员函数`bind`时，使用系统调用的`bind()`需要指定命名空间  
+            使用作用域解析运算符 `::` 来明确指定全局命名空间中的 `bind()`，其他系统调用如 `listen()`、`accept()` 等也可能有类似的问题
+        - `void listen();` ： 开启监听
+        - `void setNonBlocking();` : 设置非阻塞方式
+        - `int accept(InetAddress& client_addr);` ： 提供接受方法
+        - `int fd(){}` : 提供返回fd的方法，简单构造
+
+    1. 构造类InetAddress，方便存储地址
+        ```c++
+        class InetAddress {
+        public:
+            InetAddress() = default;//默认构造方式，无参数
+            InetAddress(const char* ip, uint16_t port);//静态多态构造方式，传入ip和端口参数，用于强制转化
+            ~InetAddress() = default;
+
+            struct sockaddr_in getAddr() const { return addr; }
+            void setAddr(struct sockaddr_in _addr) { addr = _addr; }
+
+        private:
+            struct sockaddr_in addr{};
+        };
+        ```
+    - 对Epoll的封装`Epoll.h`：对应实现监察者的功能，包括添加监察对象，准备就绪事件等
+        - 私域里维护就绪数组，用于存储就绪事件
+            ```c++
+            private:
+                int epoll_fd;// epoll实例的文件描述符
+                // 把它变成成员变量，避免每次 poll 都重新分配内存
+                std::vector<struct epoll_event> events;
+                ```
+        - 在构造函数中，使用参数列表初始化events就绪数组并创建epoll实例
+            ```c++
+            Epoll::Epoll() :  epoll_fd(-1), events(1024)
+            ...
+            epoll_fd = epoll_create1(0);
+            ...
+            ```
+        - 在析构函数中，关闭本监察者
+        - 功能函数
+            - `void addFd(int fd, uint32_t events);` : 用于向epoll实例中添加新的文件描述符fd及其对应的事件
+            - `std::vector<epoll_event> poll(int timeout = -1);` : 用于等待事件发生，并返回实际就绪的事件列表
+
+1. 主函数的实现`main.cpp`
 
