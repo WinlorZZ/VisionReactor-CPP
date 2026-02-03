@@ -13,6 +13,10 @@ Socket::Socket() : _fd(-1) {
     // 0: 自动选择协议
     _fd = socket(AF_INET, SOCK_STREAM, 0);//创建一个TCP socket
     errif(_fd == -1, "socket create error");
+
+    // 允许端口复用 (防止 bind error: Address already in use)
+    int opt = 1;
+    setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
 // 对应 socket(fd) ：用于包装已有的 fd (比如 accept 返回的)
