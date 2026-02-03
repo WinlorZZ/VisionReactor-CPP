@@ -67,11 +67,11 @@ int Socket::accept(InetAddress& client_addr){
     socklen_t len = sizeof(addr);
     //socklen_t是一种无符号整数类型，专门用于表示套接字地址结构的长度
     int clnt_fd = ::accept(this->fd(), (struct sockaddr*)&addr, &len);
-    if(clnt_fd != -1){
+    if(clnt_fd != -1){//成功接受连接
+        // 把拿到的客户端地址信息，填入传入的 InetAddress 对象中
         client_addr.setAddr(addr);
     }
-    // 把拿到的客户端地址信息，填入传入的 InetAddress 对象中
-    client_addr.setAddr(addr);
+    
     return clnt_fd;//返回新的连接socket的文件描述符
 }
 
