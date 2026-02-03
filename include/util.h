@@ -12,7 +12,7 @@
 
 #define BUFFER_SIZE 1024
 // 简单的错误检查工具：如果 condition 为真，打印错误并退出
-void errif(bool condition, const char *errmsg) {
+inline void errif(bool condition, const char *errmsg) {
     if (condition) {
         perror(errmsg);
         exit(EXIT_FAILURE);
@@ -20,13 +20,13 @@ void errif(bool condition, const char *errmsg) {
 }
 
 // 设置文件描述符为非阻塞模式的函数
-void setNonBlocking(int fd) {
+inline void setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
 // 处理读事件的函数
-void handleReadEvent(int fd, int epoll_fd) {
+inline void handleReadEvent(int fd, int epoll_fd) {
     char buf[BUFFER_SIZE];//缓冲区
     while (true) { // 由于是 ET (边缘触发) 模式，必须一次性把数据读完
         memset(buf, 0, BUFFER_SIZE);// 清空缓冲区
