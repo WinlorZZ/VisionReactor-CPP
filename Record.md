@@ -259,3 +259,56 @@ while (true) {
 
 1. 主函数的实现`main.cpp`
 
+
+## P3阶段记录
+
+1. 语法
+    - lambda表达式的进一步补充
+        ```c++
+        servChannel->setReadCallback( [&]() {} );
+        ```
+        - 参数
+            - `[&]` : 捕获上下文变量，按引用
+            - `()` : 传入变量，本函数无
+            - `{}` : 函数体
+        - lambda表达式和传统的函数参数一样，都要在成员函数中声明
+        ```c++
+        void setReadCallback(std::function<void()> cb);
+        ```
+        - 参数`cb` : 类型为std::function，参数的返回类型由function指定`void()`
+        - `setReadCallback()` : 只是设置回调，参数 cb 是临时的，必须用一个成员变量来保存这个回调函数，之后在事件处理时才能调用它
+        ```c++
+        private:
+        ...
+        std::function<void()> readCallback;  // 存储回调函数
+        ```
+    - 逻辑运算与位运算
+        ```c++
+        if (x > 5 && y < 10)  // && = 逻辑与（AND）
+        if (x > 5 || y < 10)  // || = 逻辑或（OR）
+
+        if (revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP))// 位运算
+        ```
+        - 位运算用于检查二进制位
+        - `|` = 位或（多个位合并）
+        - `&` = 位与（检查是否包含某位）
+        
+        **为什么使用位运算？**
+        
+        标志位通常用二进制表示多个开关：
+        ```c++
+        EPOLLIN   = 0b0001 (读事件)
+        EPOLLPRI  = 0b0010 (高优先级)
+        EPOLLRDHUP= 0b0100 (连接关闭)
+
+        revents = 0b0101  (同时有读和关闭事件)
+
+        revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)
+        = 0b0101 & 0b0111
+        = 0b0101  ← 非零，说明包含了其中某个标志
+        ```
+        用位运算可以高效地检查多个标志位，是系统编程的常用做法
+        
+    
+      
+
