@@ -11,6 +11,12 @@
 #include <sys/socket.h> // optionally for socket functions
 
 #define BUFFER_SIZE 1024
+
+// 简单的回显处理函数，用于处理读事件
+void handleReadEvent(int fd) {
+
+}
+
 // 简单的错误检查工具：如果 condition 为真，打印错误并退出
 inline void errif(bool condition, const char *errmsg) {
     if (condition) {
