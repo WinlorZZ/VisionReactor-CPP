@@ -38,9 +38,9 @@ int main(){
             // 为这个【新连接】也创建一个 Channel
             Channel *clntChannel = new Channel(ep, connfd);// 设置同一个epoll实例，绑定新连接的文件描述符
             clntChannel->setReadCallback( //和上面一样，新连接也要设置读事件回调函数
-                [connfd](){ //新连接的回调函数与之前不同，直接调用回显处理函数
+                [connfd](){ //新连接的回调函数与之前不同，直接调用读处理函数
                     handleReadEvent(connfd);
-                }
+                }// handleReadEvent函数被调用，同时通过setReadCallback将其存储在clntChannel对象中的readCallback变量里
             );
             // 将新连接的 Channel 加入 Epoll 实例，关注读事件，边缘触发模式
             clntChannel->enableReading();
