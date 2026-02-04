@@ -12,11 +12,6 @@
 
 #define BUFFER_SIZE 1024
 
-// 简单的回显处理函数，用于处理读事件
-void handleReadEvent(int fd) {
-
-}
-
 // 简单的错误检查工具：如果 condition 为真，打印错误并退出
 inline void errif(bool condition, const char *errmsg) {
     if (condition) {
@@ -32,7 +27,7 @@ inline void setNonBlocking(int fd) {
 }
 
 // 处理读事件的函数
-inline void handleReadEvent(int fd, int epoll_fd) {
+inline void handleReadEvent(int fd) {
     char buf[BUFFER_SIZE];//缓冲区
     while (true) { // 由于是 ET (边缘触发) 模式，必须一次性把数据读完
         memset(buf, 0, BUFFER_SIZE);// 清空缓冲区
