@@ -10,7 +10,9 @@ public:
     
     //提供获取地址结构体的公共函数，返回sockaddr_in结构体
     const struct sockaddr* getAddr() const { return reinterpret_cast<const struct sockaddr*>(&addr); }
-
+    //提供IP和端口号的方法
+    const char* getIP() const { return inet_ntoa(addr.sin_addr); }// inet_ntoa：将网络地址转换成“.”点隔的字符串格式
+    const short int getPort() { return addr.sin_port; };// 
     //提供获取地址结构体长度的公共函数，返回socklen_t类型
     socklen_t getAddrLen() const { return sizeof(addr); }
 
@@ -24,7 +26,7 @@ private:
 // struct sockaddr_in
 //   {
 //     __SOCKADDR_COMMON (sin_);
-//     in_port_t sin_port;			/* Port number.  */
+//     in_port_t sin_port;			/* Port number. in_port_t = short int  */
 //     struct in_addr sin_addr;		/* Internet address.  */
 
 //     /* Pad to size of `struct sockaddr'.  */

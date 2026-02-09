@@ -9,12 +9,14 @@ class Epoll; // 前向声明
 // using EventCallback = std::function<void()>; 
 // 定义回调函数类型，也可以直接使用 std::function<void()>
 
+
+// Channel
 class Channel {
 public:
     Channel(Epoll *ep,int fd); // 构造函数, 初始化 fd 和 epoll 指针
     ~Channel();
-    void setReadCallback(std::function<void()> cb);   // 设置读事件回调函数
-    void setWriteCallback(std::function<void()> cb);  // 设置写事件回调函数
+    void setReadCallback(std::function<void()> cb);   // 初始化读事件函数的方法
+    void setWriteCallback(std::function<void()> cb);  // 初始化写事件函数的方法
     void enableReading(); // 启用读事件监听，将事件添加到 epoll 实例中
     void handleEvent(); // 处理事件，调用相应的回调函数
 
