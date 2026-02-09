@@ -6,13 +6,13 @@
 #include "InetAddress.h"
 
 Acceptor::Acceptor(Epoll* ep) : ep(ep) {
-    // 新建socket和对应的addr，绑定、监听、非阻塞
-    Socket *lis_socket = new Socket();
+    // 初始化socket和对应的addr，绑定、监听、非阻塞
+    lis_sock = new Socket();
     InetAddress *addr = new InetAddress("127.0.0.1", 8888);
     //存储地址是临时变量最后要释放
-    lis_socket->bind(*addr);
-    lis_socket->listen();
-    lis_socket->setNonBlocking();
+    lis_sock->bind(*addr);
+    lis_sock->listen();
+    lis_sock->setNonBlocking();
 
     // 初始化Channel，绑定ep和socket
     acceptChannel = new Channel(ep, lis_sock->fd());

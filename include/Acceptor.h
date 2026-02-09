@@ -19,7 +19,7 @@ public:
     ~Acceptor();
     
     void acceptNewConnection(); // 接受新连接，接管之前channel的handleEvent方法
-    void setNewConnectionCallback(const std::function<void(Socket*)> cb){
+    void setNewConnectionCallback(std::function<void(Socket*)> cb){
         //Server通过调用该方法以设置函数NCCB
         newConnectionCallback = cb;
     }
