@@ -13,7 +13,7 @@
 - Socket 的返回值
 
     - 调用 socket() 或 epoll_create() 时，系统会从 3 开始寻找最小未被使用的整数；
-所以我们在打印时看到 listen_fd 通常是 3，epoll_fd 是 4，第一个客户端是 5
+    所以我们在打印时看到 listen_fd 通常是 3，epoll_fd 是 4，第一个客户端是 5
     - 测试代码示例：
         ```c++
         // 在 main 函数开头打印
@@ -118,7 +118,7 @@
         struct in_addr sin_addr;	
         //结构体in_addr
         //成员sin_addr用于存储IPv4地址
-
+    
         /* Pad to size of `struct sockaddr'.  */
         unsigned char sin_zero[sizeof (struct sockaddr)
                 - __SOCKADDR_COMMON_SIZE
@@ -146,7 +146,7 @@
         uint32_t     events;    // 感兴趣的事件类型及触发模式 (位掩码)
         epoll_data_t data;      // 用户数据 (核心！)
     };
-
+    
     // data 是一个联合体 (Union)，即特殊的结构体，其所有数据成员互斥共享同一块内存
     typedef union epoll_data {
         void        *ptr;       // 指针 (用于 Reactor 模式存对象)
@@ -214,7 +214,7 @@ while (true) {
             void Socket::bind(const InetAddress& addr){ 
                 ... 
                 if( ::bind(fd,addr.getAddr(),addr.getAddrLen()) == -1 ){ ... } }
-            ```  
+            ```
             封装成员函数`bind`时，使用系统调用的`bind()`需要指定命名空间  
             使用作用域解析运算符 `::` 来明确指定全局命名空间中的 `bind()`，其他系统调用如 `listen()`、`accept()` 等也可能有类似的问题
         - `void listen();` ： 开启监听
@@ -229,10 +229,10 @@ while (true) {
             InetAddress() = default;//默认构造方式，无参数
             InetAddress(const char* ip, uint16_t port);//静态多态构造方式，传入ip和端口参数，用于强制转化
             ~InetAddress() = default;
-
+        
             struct sockaddr_in getAddr() const { return addr; }
             void setAddr(struct sockaddr_in _addr) { addr = _addr; }
-
+        
         private:
             struct sockaddr_in addr{};
         };
@@ -244,7 +244,7 @@ while (true) {
                 int epoll_fd;// epoll实例的文件描述符
                 // 把它变成成员变量，避免每次 poll 都重新分配内存
                 std::vector<struct epoll_event> events;
-                ```
+            ```
         - 在构造函数中，使用参数列表初始化events就绪数组并创建epoll实例
             ```c++
             Epoll::Epoll() :  epoll_fd(-1), events(1024)
@@ -257,58 +257,140 @@ while (true) {
             - `void addFd(int fd, uint32_t events);` : 用于向epoll实例中添加新的文件描述符fd及其对应的事件
             - `std::vector<epoll_event> poll(int timeout = -1);` : 用于等待事件发生，并返回实际就绪的事件列表
 
-1. 主函数的实现`main.cpp`
-
-
 ## P3阶段记录
 
+1. 各级封装的关系图
+   - 总服务的持有关系![Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368576586-3](./Record.assets/Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368576586-3.png)
+   - `Acceptor` 的回调链![Gemini_Generated_Image_t4gw1xt4gw1xt4gw](./Record.assets/Gemini_Generated_Image_t4gw1xt4gw1xt4gw.png)
+   - `Connection` 的回调链![Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368711102-6](./Record.assets/Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368711102-6.png)
+
 1. 语法
-    - lambda表达式的进一步补充
+- [c++11语法：`auto`的使用](https://zhuanlan.zhihu.com/p/670102303)  
+    - 对于某些较长或较奇怪的数据类型，可交给编译器自行推导，这样使代码更简洁  
+    示例代码
         ```c++
-        servChannel->setReadCallback( [&]() {} );
-        ```
-        - 参数
-            - `[&]` : 捕获上下文变量，按引用
-            - `()` : 传入变量，本函数无
-            - `{}` : 函数体
-        - lambda表达式和传统的函数参数一样，都要在成员函数中声明
-        ```c++
-        void setReadCallback(std::function<void()> cb);
-        ```
-        - 参数`cb` : 类型为std::function，参数的返回类型由function指定`void()`
-        - `setReadCallback()` : 只是设置回调，参数 cb 是临时的，必须用一个成员变量来保存这个回调函数，之后在事件处理时才能调用它
-        ```c++
-        private:
-        ...
-        std::function<void()> readCallback;  // 存储回调函数
-        ```
-    - 逻辑运算与位运算
-        ```c++
-        if (x > 5 && y < 10)  // && = 逻辑与（AND）
-        if (x > 5 || y < 10)  // || = 逻辑或（OR）
-
-        if (revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP))// 位运算
-        ```
-        - 位运算用于检查二进制位
-        - `|` = 位或（多个位合并）
-        - `&` = 位与（检查是否包含某位）
+        int main()
+        {
+            int a = 8;
+            char b = 'x';
+            auto* c = &a;
+            auto& d = b;
         
-        **为什么使用位运算？**
+            std::cout << "a typename is:" << typeid(a).name() << std::endl;
+            std::cout << "b typename is:" << typeid(b).name() << std::endl;
+            std::cout << "c typename is:" << typeid(c).name() << std::endl;
+            std::cout << "d typename is:" << typeid(d).name() << std::endl;
+        }
         
-        标志位通常用二进制表示多个开关：
-        ```c++
-        EPOLLIN   = 0b0001 (读事件)
-        EPOLLPRI  = 0b0010 (高优先级)
-        EPOLLRDHUP= 0b0100 (连接关闭)
-
-        revents = 0b0101  (同时有读和关闭事件)
-
-        revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)
-        = 0b0101 & 0b0111
-        = 0b0101  ← 非零，说明包含了其中某个标志
+        // 输出
+        /*
+        a typename is:int
+        b typename is:char
+        c typename is:int *
+        d typename is:char
+        */
         ```
-        用位运算可以高效地检查多个标志位，是系统编程的常用做法
+- [C++11语法：`std::function`与`std::bind`](https://zhuanlan.zhihu.com/p/381639427)  
+    示例代码
+    ```c++
+    int f(int,char,double);
+    auto reflect = std::bind(f,_3,_2,_1);     //翻转参数顺序
+    int result = reflect(2.2,'c',10);    // f(10,'c',2.2); 
+    ```
+- lambda表达式的进一步补充
+    ```c++
+    servChannel->setReadCallback( [&]() {} );
+    ```
+    - 参数
+        - `[&]` : 捕获上下文变量，按引用
+        - `()` : 传入变量，本函数无
+        - `{}` : 函数体
+    - lambda表达式和传统的函数参数一样，都要在成员函数中声明
+    ```c++
+    void setReadCallback(std::function<void()> cb);
+    ```
+    - 参数`cb` : 类型为std::function，参数的返回类型由function指定`void()`
+    - `setReadCallback()` : 只是设置回调，参数 cb 是临时的，必须用一个成员变量来保存这个回调函数，之后在事件处理时才能调用它
+    ```c++
+    private:
+    ...
+    std::function<void()> readCallback;  // 存储回调函数
+    ```
+- 逻辑运算与位运算
+    ```c++
+    if (x > 5 && y < 10)  // && = 逻辑与（AND）
+    if (x > 5 || y < 10)  // || = 逻辑或（OR）
         
-    
-      
+    if (revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP))// 位运算
+    ```
+    - 位运算用于检查二进制位
+    - `|` = 位或（多个位合并）
+    - `&` = 位与（检查是否包含某位）
+        
+    **为什么使用位运算？**
+        
+    标志位通常用二进制表示多个开关：
+    ```c++
+    EPOLLIN   = 0b0001 (读事件)
+    EPOLLPRI  = 0b0010 (高优先级)
+    EPOLLRDHUP= 0b0100 (连接关闭)
+        
+    revents = 0b0101  (同时有读和关闭事件)
+        
+    revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)
+    = 0b0101 & 0b0111
+    = 0b0101  ← 非零，说明包含了其中某个标志
+    ```
+    用位运算可以高效地检查多个标志位，是系统编程的常用做法
+
+
+### 问题释义
+
+#### Q1: 关于 `read()` 函数返回值的含义
+
+这是 Unix 网络编程中一个非常容易混淆的点，特别是在非阻塞（Non-blocking）模式下。我们需要严格区分“对端关闭”和“暂时没数据”
+
+在 TCP 协议和 POSIX 标准中定义：
+
+1. **`read()返回 > 0`**：成功读取到 N 个字节的数据。
+2. **`read()返回 == 0`**：**EOF (End of File)**。在 TCP 层面，这表示对端发送了 `FIN` 包，明确告知“我不会再给你发任何数据了”。这是一个不可逆的状态，因此我们认定为 **“断开连接”**。
+3. **`read()返回 == -1`**：出错了。此时需要检查全局变量 `errno`。
+
+**“读完数据” (缓冲区空) 的表现：**
+在非阻塞模式（特别是我们使用的 ET 边缘触发模式）下，当我们把内核读取缓冲区的数据全部读完后，`read()` **不会返回 0，而是返回 -1**，并且操作系统会将 `errno` 设置为 **`EAGAIN`** (或 `EWOULDBLOCK`)。这代表“现在没数据，但连接还在，你可以待会儿再来试”。
+
+#### Q2: 关于系统调用的错误码 `errno`
+
+这是 Unix/Linux 系统编程的标准机制：
+
+1. 当一个系统调用（如 `read`, `write`, `accept`）失败时，它通常返回 `-1` 来标识失败。
+2. **与此同时**，操作系统内核会修改当前线程的一个全局整型变量 —— **`errno`**。
+3. `errno` 中存储了一个预定义的常量（如 `EAGAIN`, `EINTR` 等），用于指示具体的失败原因。
+
+**注意**：只有当函数返回指示失败的值（通常是 -1）时，读取 `errno` 才有意义。如果函数执行成功，`errno` 的值是未定义的（它可能残留了之前的错误码）
+
+
+#### Q3: 关于 `accept` 时客户端地址信息的来源
+
+**操作系统内核 (OS Kernel)** 在 `accept` 系统调用发生时写入内存
+
+这是一个典型的 **“传出参数 (Out Parameter)”** 的用法。
+
+1. **准备空表**：在 C++ 层，你 `new InetAddress()`，这相当于申请了一张空白的表格（内存空间）。
+2. **传入地址**：调用 `listenSock->accept(clntAddr)` 时，你实际上是把这张空白表格的 **内存地址** 告诉了操作系统。
+3. **内核填充**：当有客户端连接时，TCP 三次握手完成，内核从网络包头中提取出客户端的 IP 和端口号，然后**直接把这些数据写到了你提供的那个内存地址上**。
+4. **读取结果**：系统调用返回后，你再去读取那个 `InetAddress` 对象，里面就有了数据。
+
+### 二、 架构与内存管理 (Architecture & Memory)
+
+#### Q4: 关于 Socket 的所有权转移与生命周期
+
+Socket 指针就像一个接力棒：
+
+1. **生产 (Acceptor)**：`Acceptor` 调用 `accept()` 创建了 `clntSock`。此时它是所有者。
+2. **转移 1 (Acceptor -> Server)**：通过 `newConnectionCallback(clntSock)`，`Acceptor` 将所有权交给了 `Server`。`Acceptor` 以后不再负责它。
+3. **转移 2 (Server -> Connection)**：`Server` 收到后，立即调用 `new Connection(..., clntSock)`，将所有权最终交给了 `Connection` 对象。
+4. **持有与销毁 (Connection)**：`Connection` 对象在构造函数中将这个指针存在自己的成员变量里。当 `Connection` 对象最终被销毁时，它的**析构函数**负责执行 `delete sock;`。
+
+这种设计确保了每个创建出来的 Socket 最终都有且只有一个“负责人”来清理它，完美避免了内存泄漏。
 
