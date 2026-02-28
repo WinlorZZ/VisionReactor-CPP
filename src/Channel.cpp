@@ -1,9 +1,10 @@
 #include <iostream>
 #include "Channel.h"
 #include "Epoll.h"
+#include "EventLoop.h"
 
-Channel::Channel(Epoll *ep, int fd) 
-    : ep(ep), fd(fd), events(0), revents(0) { };// 构造函数, 初始化 fd 和 epoll 指针
+Channel::Channel(EventLoop *loop, int fd) 
+    : loop(loop), fd(fd), events(0), revents(0) { };// 构造函数, 初始化 fd 和 loop 指针
 
 Channel::~Channel() {
     // 析构函数暂时留空
@@ -14,7 +15,7 @@ void Channel::enableReading(){
     // 启用读事件监听，将事件添加到 epoll 实例中
     events |= EPOLLIN | EPOLLET; 
     // 关注读事件，边缘触发模式，|=为位或赋值运算符，即 events = events | (EPOLLIN | EPOLLET)
-    ep->updateChannel(this);
+    loop->updateChannel(this);
 }
 
 void Channel::handleEvent() {
@@ -25,7 +26,7 @@ void Channel::handleEvent() {
         // EPOLLPRI: 高优先级数据可读
         // EPOLLRDHUP: 对端关闭连接或者半关闭
         if (readCallback) {
-            readCallback(); // 执行我们通过 setReadCallback 设置的 Lambda
+            readCallback(); // 执行通过 setReadCallback 设置的 Lambda
         }
     }
     if( revents & EPOLLOUT ) {

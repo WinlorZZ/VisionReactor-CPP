@@ -4,8 +4,9 @@
 #include <sys/epoll.h>
 #include <functional> // for std::function?
 
-class Epoll; // 前向声明
 
+class EventLoop; // 前向声明
+class Epoll;
 // using EventCallback = std::function<void()>; 
 // 定义回调函数类型，也可以直接使用 std::function<void()>
 
@@ -13,7 +14,7 @@ class Epoll; // 前向声明
 // Channel
 class Channel {
 public:
-    Channel(Epoll *ep,int fd); // 构造函数, 初始化 fd 和 epoll 指针
+    Channel(EventLoop *loop, int fd); // 构造函数, 初始化 fd 和 epoll 指针
     ~Channel();
     void setReadCallback(std::function<void()> cb);   // 初始化读事件函数的方法
     void setWriteCallback(std::function<void()> cb);  // 初始化写事件函数的方法
@@ -29,6 +30,7 @@ public:
 
 private:
     int fd; // 文件描述符，每个channel对应唯一一个 fd
+    EventLoop *loop;
     Epoll* ep; // 指向 Epoll 实例的指针，用于注册和更新事件，每个 Channel 都关联一个 Epoll 实例
     bool isadd = false; // 标记该 Channel 是否已添加到 Epoll 实例中，默认为 false未添加
     uint32_t events;  // 关注的事件 (用户设置的)
