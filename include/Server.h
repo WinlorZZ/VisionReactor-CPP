@@ -1,27 +1,29 @@
 #pragma once
 
-#include "Socket.h"
-#include "Channel.h"
-#include "vector"
-#include "map"
+#include <map>
+#include <functional>
 
-class Epoll;
+class EventLoop;
+class Socket;
 class Acceptor;
 class Connection;
+class ThreadPool; // 前置声明
 
-// 持有 Epoll、Acceptor 和一个 map<int, Connection*>，负责协调一切，包括最重要的资源回收
 class Server {
 public:
-    Server(Epoll* epoll);// 构造时使用传入的epoll初始化acceptot
+    Server(EventLoop *loop);
     ~Server();
 
-    // 这两个函数是提供给 Acceptor 和 Connection 调用的回调
-    // 虽然它们是回调，但在当前架构下需要是 public 的，才能被 bind 选中
-    void handleNewConnection(Socket *sock); // 处理新连接
-    void handleDeleteConnection(Socket *sock); // 处理连接断开
+    void handleNewConnection(Socket *sock);
+    void handleDeleteConnection(Socket *sock);
+    
+    // [NEW] 专门处理从 Connection 发来的业务请求
+    void handleOnMessage(Connection *conn);
 
 private:
-    Epoll *ep;
-    Acceptor *acceptor;
-    std::map<int, Connection*> conns; // 核心：管理所有连接
+    EventLoop *loop; // 聚合
+    Acceptor *acceptor;// 组合
+    std::map<int, Connection*> conns;// 组合，每个fd对应一个conn，通过查找fd来查找conn
+    
+    ThreadPool *threadPool; // 组合
 };

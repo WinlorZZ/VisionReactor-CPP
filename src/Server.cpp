@@ -1,57 +1,57 @@
 #include "Server.h"
 #include "Socket.h"
-#include "Channel.h"
 #include "Acceptor.h"
 #include "Connection.h"
-#include <functional>
+#include "ThreadPool.h" // 引入实现
+#include <unistd.h>     // for sleep test
+#include <iostream>
 
-Server::Server(Epoll *ep) : ep(ep) {
-    acceptor = new Acceptor(ep);//初始化acceptor
-    // std::placeholders::_1占位符，
-    std::function<void(Socket*)> cb = std::bind(&Server::handleNewConnection,this,std::placeholders::_1);
-    acceptor->setNewConnectionCallback(cb);// 设置好acceptor的新连接处理的回调函数
+Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(nullptr) {
+    // 初始化线程池和监听器
+    acceptor = new Acceptor(loop);
+    threadPool = new ThreadPool(4); 
+    // 设置acceptor的消息回调函数，让他以这个方式通知自己
+    std::function<void(Socket*)> cb = std::bind(&Server::handleNewConnection, this, std::placeholders::_1);
+    acceptor->setNewConnectionCallback(cb);
 }
 
-Server::~Server(){
+Server::~Server() {
     delete acceptor;
-    for(auto &item : conns){
-        delete item.second;// pair对中second为具体的值，释放该对象
+    delete threadPool; // 自动停止线程
+    for(auto &item : conns) {
+        delete item.second;
     }
 }
 
-// 这个函数会被 Acceptor 触发
-void Server::handleNewConnection(Socket *clnt_sock) {// clnt_sock从Acceptor传回来的
-    std::cout << "Server: handling new connection for fd " << clnt_sock->fd() << std::endl;
-    
-    // 1. 新建Connection来进行业务
-    // 注意：我们把 clnt_sock 指针的所有权移交给了 Connection 对象
-    Connection *conn = new Connection(ep, clnt_sock);
-    
-    // 2. 将新建的对象加入map管理名单
+void Server::handleNewConnection(Socket *clnt_sock) {
+    Connection *conn = new Connection(loop, clnt_sock);
     conns[clnt_sock->fd()] = conn;
     
-    // 3. 将写好的函数传入Connetion对象，并通过Connection::set存储
-    std::function<void(Socket*)> cb = std::bind(&Server::handleDeleteConnection, this, std::placeholders::_1);
-    conn->setDeleteConnectionCallback(cb);
-} 
-
-// 这个函数会被 Connection 触发
-void Server::handleDeleteConnection(Socket *clnt_sock){
-    int fd = clnt_sock->fd();
-    std::cout << "Server: cleaning up connection for fd " << fd << std::endl;
-    // 1. 在名册中查找
-    auto it = conns.find(fd);
-    if(it != conns.end()){
-        // 2. 找到对应的 Connection 对象
-        Connection *conn = it->second;
-        
-        // 3. 从名册移除
-        conns.erase(fd);
-        
-        // 4. 【核心动作】物理销毁 Connection 对象
-        // 这会触发 Connection 的析构函数，进而自动关闭 fd，释放 Channel
-        delete conn; 
-        // 在这一步之后， clnt_sock 在 Connection 的析构函数里被 delete 了，这里不需要再 delete sock
-    }
+    conn->setDeleteConnectionCallback(std::bind(&Server::handleDeleteConnection, this, std::placeholders::_1));
+    
+    // 2. 绑定消息回调
+    // 当 Connection 读完数据，会调用 Server::handleOnMessage
+    conn->setOnMessageCallback(std::bind(&Server::handleOnMessage, this, std::placeholders::_1));
 }
 
+// 3. 任务分发中心 (主线程执行)
+void Server::handleOnMessage(Connection *conn) {
+    // 将任务扔进线程池，主线程立刻返回
+    threadPool->add([conn](){
+        // --- 以下代码在 Worker 线程执行 ---
+        // std::cout << "Worker handling..." << std::endl;
+        // sleep(3); // 可选：模拟耗时测试并发
+        conn->business(); // 执行具体的业务逻辑
+    });
+    //执行后，主线程立刻返回loop继续epoll_wait
+}
+
+void Server::handleDeleteConnection(Socket *clnt_sock) {
+    int fd = clnt_sock->fd();
+    auto it = conns.find(fd);// 通过fd查找conn，如果不在conns里，it = conns.end()
+    if(it != conns.end()) {// 如果fd在自己的conns列表中
+        Connection *conn = it->second;
+        conns.erase(fd);// 从列表移除
+        delete conn;// 释放conn
+    }
+}
