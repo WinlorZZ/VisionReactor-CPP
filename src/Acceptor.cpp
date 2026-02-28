@@ -4,8 +4,10 @@
 #include "Channel.h"
 #include "Epoll.h"
 #include "InetAddress.h"
+#include "EventLoop.h"
 
-Acceptor::Acceptor(Epoll* ep) : ep(ep) {
+
+Acceptor::Acceptor(EventLoop *loop) : loop(loop) {
     // 初始化socket和对应的addr，绑定、监听、非阻塞
     lis_sock = new Socket();
     InetAddress *addr = new InetAddress("127.0.0.1", 8888);
@@ -15,7 +17,7 @@ Acceptor::Acceptor(Epoll* ep) : ep(ep) {
     lis_sock->setNonBlocking();
 
     // 初始化Channel，绑定ep和socket
-    acceptChannel = new Channel(ep, lis_sock->fd());
+    acceptChannel = new Channel(loop, lis_sock->fd());
     // 使用bind将设置好的功能函数通过ch::set函数存储在channnel对象私域空间内
     std::function<void()> cb = std::bind(&Acceptor::acceptNewConnection, this);
     acceptChannel->setReadCallback(cb);// 将返回的函数存储通过set存储在channel对象中，方便之后使用
