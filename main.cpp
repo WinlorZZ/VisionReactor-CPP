@@ -1,33 +1,14 @@
-#include "Epoll.h"
-#include "InetAddress.h"
-#include "Socket.h"
-#include "Channel.h"
-#include "util.h"
+#include "EventLoop.h"
 #include "Server.h"
-#include "Acceptor.h"
-#include "Connection.h"
-
-#include <iostream>
-#include <unistd.h>     // close(), read(), write()
-#include <fcntl.h>      // fcntl(), O_NONBLOCK
-#include <functional>   // std::function
-#include <errno.h>
-#include <vector>
-const int MAX_EVENTS = 1000;
 
 int main(){
-    Epoll* ep = new Epoll();
-    Server* server = new Server(ep);
-    std::cout << "服务器已启动..." << std::endl;
-    while(true){
-        std::vector<Channel*> activeChannels = ep->poll();
-        
-        for(auto channel : activeChannels){
-            channel->handleEvent();
-        }
-    }
-    delete server;
-    delete ep;
+    // 1. 创建事件循环 (主线程的心脏)
+    EventLoop loop;
+    // 2. 创建服务器 (拥有 Acceptor 和 ThreadPool)
+    Server server(&loop);
+    // 3. 启动事件循环 (开始 epoll_wait)
+    // 程序将阻塞在这里，直到服务器停止
+    loop.loop();
     return 0;
 }
 
