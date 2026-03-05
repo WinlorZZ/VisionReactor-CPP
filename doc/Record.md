@@ -49,6 +49,7 @@
     - void 指针*：这里传 &opt 是因为该函数通用性极强，可以传 int 也可以传结构体，C 语言通过 void* 实现类似“泛型”的效果
 
 1. `bind()`：给 socket 绑定“门牌号”（IP + 端口）
+   
     ```c++
     bind(listen_fd, (struct sockaddr*)&server_addr, sizeof(server_addr));
     ```
@@ -59,7 +60,7 @@
     - 强制类型转换 (struct sockaddr*)：C 语言实现“多态”的手段
     - bind 函数是通用的，它不知道你传的是 IPv4 (sockaddr_in) 还是 IPv6 (sockaddr_in6)
         - 系统定义了一个通用的基类结构体 sockaddr。我们必须把自己的 IPv4 结构体强转为通用结构体传进去，内核再根据内部的 family 字段判断具体类型
-
+    
 1. `listen()`：开启监听模式
     ```c++
     listen(listen_fd, SOMAXCONN);
@@ -144,7 +145,7 @@
     ```c++
         struct epoll_event {
         uint32_t     events;    // 感兴趣的事件类型及触发模式 (位掩码)
-        epoll_data_t data;      // 用户数据 (核心！)
+        epoll_data_t data;      // 用户数据
     };
     
     // data 是一个联合体 (Union)，即特殊的结构体，其所有数据成员互斥共享同一块内存
@@ -267,7 +268,7 @@ while (true) {
 1. 语法
 - [c++11语法：`auto`的使用](https://zhuanlan.zhihu.com/p/670102303)  
     - 对于某些较长或较奇怪的数据类型，可交给编译器自行推导，这样使代码更简洁  
-    示例代码
+      示例代码
         ```c++
         int main()
         {
@@ -292,6 +293,7 @@ while (true) {
         ```
 - [C++11语法：`std::function`与`std::bind`](https://zhuanlan.zhihu.com/p/381639427)  
     示例代码
+    
     ```c++
     int f(int,char,double);
     auto reflect = std::bind(f,_3,_2,_1);     //翻转参数顺序
@@ -326,7 +328,8 @@ while (true) {
     - 位运算用于检查二进制位
     - `|` = 位或（多个位合并）
     - `&` = 位与（检查是否包含某位）
-        
+      
+    
     **为什么使用位运算？**
         
     标志位通常用二进制表示多个开关：
@@ -346,28 +349,57 @@ while (true) {
 
 ### 问题释义
 
-#### Q1: 关于 `read()` 函数返回值的含义
+#### Q1: 关于 `read()`和`write()` 函数返回值的含义
 
-这是 Unix 网络编程中一个非常容易混淆的点，特别是在非阻塞（Non-blocking）模式下。我们需要严格区分“对端关闭”和“暂时没数据”
+`read()`返回值：特别是在非阻塞（Non-blocking）模式下，需要严格区分“对端关闭”和“暂时没数据”
 
 在 TCP 协议和 POSIX 标准中定义：
 
 1. **`read()返回 > 0`**：成功读取到 N 个字节的数据。
 2. **`read()返回 == 0`**：**EOF (End of File)**。在 TCP 层面，这表示对端发送了 `FIN` 包，明确告知“我不会再给你发任何数据了”。这是一个不可逆的状态，因此我们认定为 **“断开连接”**。
-3. **`read()返回 == -1`**：出错了。此时需要检查全局变量 `errno`。
+3. **`read()返回 == -1`**：出错了。此时需要检查全局变量 `errno`
 
 **“读完数据” (缓冲区空) 的表现：**
-在非阻塞模式（特别是我们使用的 ET 边缘触发模式）下，当我们把内核读取缓冲区的数据全部读完后，`read()` **不会返回 0，而是返回 -1**，并且操作系统会将 `errno` 设置为 **`EAGAIN`** (或 `EWOULDBLOCK`)。这代表“现在没数据，但连接还在，你可以待会儿再来试”。
+在非阻塞模式（特别是我们使用的 ET 边缘触发模式）下，当我们把内核读取缓冲区的数据全部读完后，`read()` **不会返回 0，而是返回 -1**，并且操作系统会将 `errno` 设置为 **`EAGAIN`** (或 `EWOULDBLOCK`)。这代表“现在没数据，但连接还在，你可以待会儿再来试”
 
-#### Q2: 关于系统调用的错误码 `errno`
+`write()`的返回值是一个有符号长整型ssize_t，对于当前项目，有以下含义
+
+- `write()返回 > 0`：表示内核接受的字节数，并放入TCP发送缓冲区
+  - 返回值 `== msg.size()`：请求发送的数据全部接受，此时`remaining==0`
+  - 返回值  `< msg.size()`：请求发送的数据部分接受，此时`remaining == msg.size() - nwrote`、
+- `write()返回 == -1：此时同样检查错误码
+  - `errno == EAGAIN`  或者 `Q2: 关于系统调用的错误码 `errno` :在非阻塞模型中这不算错误，而是代表系统当前没有资源处理写入
+  - 其他错误码包括：
+    - `EPIPE`：客户端突然崩溃
+    - `ECONNRESET`：对端重置了连接
 
 这是 Unix/Linux 系统编程的标准机制：
 
-1. 当一个系统调用（如 `read`, `write`, `accept`）失败时，它通常返回 `-1` 来标识失败。
-2. **与此同时**，操作系统内核会修改当前线程的一个全局整型变量 —— **`errno`**。
-3. `errno` 中存储了一个预定义的常量（如 `EAGAIN`, `EINTR` 等），用于指示具体的失败原因。
+1. 当一个系统调用（如 `read`, `write`, `accept`）失败时，它通常返回 `-1` 来标识失败
+2. **与此同时**，操作系统内核会修改当前线程的一个全局整型变量 —— **`errno`**
+3. `errno` 中存储了一个预定义的常量（如 `EAGAIN`, `EINTR` 等），用于指示具体的失败原因
 
 **注意**：只有当函数返回指示失败的值（通常是 -1）时，读取 `errno` 才有意义。如果函数执行成功，`errno` 的值是未定义的（它可能残留了之前的错误码）
+
+本项目中`errno`的类型：
+
+- `EAGAIN` (Try again) / `EWOULDBLOCK` (Operation would block)
+  - `read()`时出现：底层的 TCP 接收缓冲区已经被你读空了
+  - `write()`时出现：底层的 TCP 发送缓冲区已经塞满了
+  - 在大多数 Linux 系统中，这两个宏的值是相等的，但为了跨平台兼容性，严谨的代码会把两个都写上：`errno == EAGAIN || errno == EWOULDBLOCK`
+- `EINTR` (Interrupted system call)
+  - 当你的线程正在阻塞调用（或者甚至是非阻塞调用在内核态准备数据的瞬间），突然操作系统收到了一个外部信号（Signal，比如你在终端按了 Ctrl+C 产生的 `SIGINT`，或者子进程退出的 `SIGCHLD`）。内核为了去处理这个优先级更高的信号，强行打断了你的 `read` 或 `write`
+  - 此时重新进行即可，`if (errno == EINTR) { continue; }` ，直接进入下一次 while 循环，重新调用 read/write
+- `EPIPE` (Broken pipe)
+  - 最容易在**写 (`write`)** 的时候发生
+  - 在 Linux 下，往一个触发了 `EPIPE` 的 Socket 写数据，内核默认会给你的进程发送一个 `SIGPIPE` 信号，这个信号的默认行为是直接杀死整个进程
+  - 需要在 `main` 函数的最开头加上一行代码忽略它：`signal(SIGPIPE, SIG_IGN);`防止程序崩溃
+- `ECONNRESET` (Connection reset by peer)
+  - 对端（客户端）硬重置了连接
+- `EMFILE` (Too many open files) / `ENFILE`
+  - 在主线程调用 `accept()` 接收新玩家连接时。Linux 系统对每个进程能打开的“文件描述符 (fd)”是有上限的（默认通常是 1024），超出这个上线时，`accept` 就会返回 -1，并报 `EMFILE`
+
+​	
 
 
 #### Q3: 关于 `accept` 时客户端地址信息的来源
@@ -442,6 +474,7 @@ workers.push_back(std::move(new_worker));
         ```
         - `Predicate pred` ： 一个可调用对象（如 lambda 表达式、函数对象或函数指针），无参数，返回一个bool值
 - `emplace_back()` : C++ 标准库中许多容器提供这个成员函数，主要作用是在容器的末尾就地构造一个新元素
+  
     - 就地构造：当你使用 `emplace_back()` 时，你将直接在容器内部构造新元素（调用对应的构造函数）,并将其存储在容器中（当然你需要提供构造新元素的相关参数）
     - 与 `push_back()` 的区别  
         使用`push_back()`时，  
@@ -453,11 +486,184 @@ workers.push_back(std::move(new_worker));
         - 接受用于构造新元素的参数
         - 直接在容器内部的内存位置调用元素的构造函数，使用这些参数来构造对象
         - 避免了创建临时对象以及随后的拷贝或移动操作，从而可能提高效率（尤其是在处理复杂对象或需要大量拷贝/移动操作时）
-- [模板元编程]（https://gitbookcpp.llfc.club/sections/cpp/base/cppbase31.html）（暂时跳过）
-    - `template`
+    
 - `inline`: 用于向编译器建议将函数体在调用点展开，而不是进行常规的函数调用
     - 仅仅是建议：inline 只是对编译器的一个建议，编译器有权忽略这个建议。例如，如果函数体过大，或者包含复杂的控制流（如循环、递归），编译器可能会选择不将其内联
     - **头文件中的内联函数**：通常，内联函数的定义会放在头文件中，这样在每个包含该头文件的源文件中，编译器都能看到函数的完整定义，从而有机会进行内联
     - **避免重复定义错误**：如果内联函数定义在多个源文件中，编译器必须确保它们是完全相同的。如果定义不同，会导致链接错误。
     - **减少函数调用开销**：内联可以消除函数调用的压栈、跳转等开销
     - **可能增加代码大小**：如果一个内联函数被频繁调用，并且函数体较大，那么将其内联可能会导致最终生成的可执行文件变大，因为函数体会在每个调用点重复出现
+
+这是一份为你精心整理的 **C++ 可变参数模板与异步编程** 笔记大纲。它按照我们交流的逻辑顺序，从最基础的“模具”概念一直延伸到复杂的“线程池”实战。
+
+## 模板编程
+
+### 一、 可变参数模板 (Variadic Templates)
+
+解决“我不知道用户会传多少个、什么类型参数”的问题
+
+#### 关键字 模板`Template`
+
+* **本质**：模板不是函数，而是**生成函数的规则**（编译器在编译期根据你的调用自动代写代码）
+* **`template<typename T>`**：
+  * **类型抽象**：`typename `代表任意类型，与`class`等价使用（注意与`class F(){};`区分），`T` 是占位符，可以代表 `int`, `double`, 甚至指针 `int*`，可调用对象（如 lambda 表达式、函数对象或函数指针）
+  * **数量限制**：这种d写法指定了参数数量是**固定**的（这里是 1 个）
+
+#### 核心符号：省略号 `...`
+
+* **声明参数包 (Pack)**：`typename... Args`。告诉编译器：“这里有一袋子类型，这堆类型的集合叫Args”
+* **展开参数包 (Expansion)**：`args...`。告诉编译器：“把袋子args里的东西按逗号顺序抖搂出来”
+* 省略号位置的举例
+
+  * `typename... Args`（左侧）：是**打包**
+
+    `Args &&... args`（中间）：是**匹配**。`args`中是已经确定的参数，调用函数传进去的实参，`Args `是待推定的参数包，等待`args`告诉他
+
+    `args...`（右侧）：是**拆包**。把袋子里的变量一个一个倒出来，用逗号隔开，等价于`int a，double b，int* a`（根据实际情况等价）
+
+
+#### 举例
+
+```c++
+template<typename T>//未知类型，一个参数
+template<class... Args>//未知类型，未知数量参数
+template<typename T, class... Args>//混合写法，声明的同时代表当前处理的参数是T，其他的是Args
+```
+
+#### 处理包的两种方式
+
+* **递归法 (C++11)**：通过“处理第一个 + 递归处理剩余”的逻辑，配合一个空的终止函数
+
+  ```c++
+  void print(){}//自我调用需要一个空参数的同名函数，在递归的最后一步时会调用这个函数来终止
+  
+  template<typename T, class... Args>
+  void print(T first, Args... rest) {
+      std::cout << first << std::endl; // 处理当前参数
+      print(rest...); //自我调用
+  }
+  ```
+* **折叠表达式 (C++17)**：一行代码处理全包。例如：`(std::cout << ... << args);`
+
+---
+
+### 三、 万能引用与完美转发 (Perfect Forwarding)
+
+为了实现“极致性能”，参数在传递过程中不能有余的拷贝。
+
+* **万能引用 (`Args &&... args`)**
+
+  * 使用`&&`来对`args`中的实参进行引用，对于左值（可引用和可取地址）则是引用类型，对于右值是右值引用(&&a)
+  * `...` 作用于 `Args &&` 整个模式，将其复制 N 次
+  * 例如（伪代码）
+
+    ```c++
+    args = int a,double b, int* c, &d,f
+    Args &&... args = int &a, double &b, int* &c, int* &&d,int &&f
+    ```
+
+
+
+* **`std::forward`**：
+
+  * 配合 `...` 使用：`std::forward<Args>(args)...`，等价于`std::forward<A1>(a1), std::forward<A2>(a2), ...`
+  * **作用**：像透明管道一样，把参数的原有属性（是临时值还是变量）原封不动地传给下一级函数
+  * 补充：引用折叠规则 (Reference Collapsing)，在 C++ 模板中，当“引用的引用”出现时，遵循以下逻辑：
+    - $T\& + \& \to T\& \quad$ (左值 + 左值 = 左值)
+    - $T\& + \&\& \to T\& \quad$ (左值 + 右值 = 左值)
+    - $T\&\& + \& \to T\& \quad$ (右值 + 左值 = 左值)
+    - $T\&\& + \&\& \to T\&\& \quad$ (**只有两个都是右值引用，结果才是右值**)
+
+
+
+
+---
+
+### 四、 尾置返回类型 (Trailing Return Type)
+
+* **语法**：`auto func(参数) -> 返回类型`，这里`auto`是与`->`组合使用的
+* **必要性**：在模板中，返回类型往往取决于参数。如果写在前面，编译器还没读到参数，无法推导
+* **类型萃取**：`std::result_of<F(Args...)>::type`（或 C++17 的 `std::invoke_result_t`），用于在编译期模拟调用，算出返回值到底是什么类型，白话讲就是：模拟调用`F(Args...)`，`F`作为函数名，`Args`作为参数，使用`result_of<>`接受返回值，然后给`type`取别名（例如`using type = int`），最后与auto使用确定返回值类型
+
+---
+
+### 五、 异步凭证：`std::future<>`
+
+* **定义**：异步操作的“占位符”，其实是一个类对象
+
+  ```c++
+  std::future<T>//类比
+  std::vector<int>
+  ```
+
+* **核心逻辑**：
+
+  ​	**占位**：函数立即返回一个 `future` 对象，主线程不阻塞。
+
+  ​	**执行**：任务在后台线程（或线程池）运行。
+
+  ​	**填值**：任务算完后，把值填入 `future` 内部的共享空间。
+
+  ​	**取值**：用户通过 `res.get()` 拿到结果。如果没算完，`get()` 会自动等待
+
+### 六、类模板std::packaged_task<>
+
+就像`vector<int>`一样，`packaged_task<>`也是如此，只是<>内接收的是一个**函数签名（Function Signature）**
+
+- 关于函数签名
+
+### 七、 看懂线程池任务提交函数
+
+将上述所有知识点合为一体：
+
+```cpp
+template <class F, class... Args>
+auto ThreadPool::add(F &&f, Args &&...args) 
+    -> std::future<typename std::result_of<F(Args...)>::type>
+{
+    // 1. 推导返回值类型
+    using return_type = typename std::result_of<F(Args...)>::type;
+
+    // 2. 封装任务：std::bind 绑定函数与参数包，std::forward 保证转发性能
+    auto task = std::make_shared<std::packaged_task<return_type()>>(
+        std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+    );
+
+    // 3. 提取 future 凭证并返回给用户
+    std::future<return_type> res = task->get_future();
+    
+    // 4. 将任务放入队列（略去锁操作）
+    tasks.emplace([task]() { (*task)(); });
+    
+    return res;
+}
+```
+
+**关于 `using return_type = typename std::result_of<F(Args...)>::type;`**：
+
+- `return_type `是类型名，就像`int`
+- `return_type() `它是**函数签名**，就像`int()`是`int func()`的签名一样
+- 由于 `std::bind` 已经预先绑定了所有参数，所以任务对外表现为“无参”，故写作 `( )`。
+- 这保证了线程池的调度器可以用统一的 `task()` 方式来触发它
+
+以下代码可以这样理解：
+
+```c++
+auto task = std::make_shared<std::packaged_task<return_type()>>(
+        std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+    );
+//just like
+auto task = std::make_shared< std::vector<int> >( std::bind() )
+```
+
+对于为什么在这使用lambda表达式`tasks.emplace([task]() { (*task)(); });`
+
+- 因为emplace只接受`std::queue<std::function<void()>>`类型的对象，而`task`本身是一个智能指针（类型是：`std::shared_ptr<std::packaged_task<return_type()>>`），因此将其放进表达式来伪装为`void`类型，这称为**类型擦除**
+- 表达式内部：先解引用`*task`，再调用`(*task)();`
+
+### 总结
+
+1. **`...` 在左**是打包，**`...` 在右**是拆包
+2. **`auto` ... `->**` 是为了解决“还没看到参数就得确定返回值”的尴尬
+3. **`std::future`** 占的是“未来的值”，而不是类型
+4. **模板**是编译期的魔法，**多线程**是运行期的艺术
