@@ -11,11 +11,25 @@ Channel::~Channel() {
     // 在这里处理从 Epoll 中自动移除的逻辑
 }
 
+// 启用读事件监听，将事件添加到 epoll 实例中
 void Channel::enableReading(){
-    // 启用读事件监听，将事件添加到 epoll 实例中
     events |= EPOLLIN | EPOLLET; 
     // 关注读事件，边缘触发模式，|=为位或赋值运算符，即 events = events | (EPOLLIN | EPOLLET)
+    loop->updateChannel(this);//每次关注事件的变动都要更新channel
+}
+
+void Channel::enableWriting(){
+    events |= EPOLLOUT;
     loop->updateChannel(this);
+}
+
+void Channel::disableWriting(){
+    events &= ~EPOLLOUT; // 擦除写标签，保留读标签
+    loop->updateChannel(this);
+}
+
+bool Channel::isWriting() const {
+    return events & EPOLLOUT;
 }
 
 void Channel::handleEvent() {
