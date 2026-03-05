@@ -18,12 +18,12 @@ public:
     void handleDeleteConnection(Socket *sock);
     
     // [NEW] 专门处理从 Connection 发来的业务请求
-    void handleOnMessage(Connection *conn);
+    void handleOnMessage(std::shared_ptr<Connection> conn);
 
 private:
     EventLoop *loop; // 聚合
     Acceptor *acceptor;// 组合
-    std::map<int, Connection*> conns;// 组合，每个fd对应一个conn，通过查找fd来查找conn
+    std::map<int, std::shared_ptr<Connection> > conns;// 组合，每个fd对应一个conn，通过查找fd来查找conn
     
     ThreadPool *threadPool; // 组合
 };

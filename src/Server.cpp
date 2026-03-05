@@ -18,24 +18,25 @@ Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(null
 Server::~Server() {
     delete acceptor;
     delete threadPool; // 自动停止线程
-    for(auto &item : conns) {
-        delete item.second;
-    }
+    // for(auto &item : conns) {
+    //     delete item.second;
+    // }
 }
 
 void Server::handleNewConnection(Socket *clnt_sock) {
-    Connection *conn = new Connection(loop, clnt_sock);
+    std::shared_ptr< Connection > conn = std::make_shared<Connection>(loop, clnt_sock);
     conns[clnt_sock->fd()] = conn;
-    
+    // 绑定conn对象中的两个回调
+    // 绑定delete回调
     conn->setDeleteConnectionCallback(std::bind(&Server::handleDeleteConnection, this, std::placeholders::_1));
     
-    // 2. 绑定消息回调
+    // 绑定消息回调
     // 当 Connection 读完数据，会调用 Server::handleOnMessage
     conn->setOnMessageCallback(std::bind(&Server::handleOnMessage, this, std::placeholders::_1));
 }
 
 // 3. 任务分发中心 (主线程执行)
-void Server::handleOnMessage(Connection *conn) {
+void Server::handleOnMessage(std::shared_ptr<Connection> conn) {
     // 将任务扔进线程池，主线程立刻返回
     threadPool->add([conn](){
         // --- 以下代码在 Worker 线程执行 ---
@@ -50,8 +51,6 @@ void Server::handleDeleteConnection(Socket *clnt_sock) {
     int fd = clnt_sock->fd();
     auto it = conns.find(fd);// 通过fd查找conn，如果不在conns里，it = conns.end()
     if(it != conns.end()) {// 如果fd在自己的conns列表中
-        Connection *conn = it->second;
         conns.erase(fd);// 从列表移除
-        delete conn;// 释放conn
     }
 }
