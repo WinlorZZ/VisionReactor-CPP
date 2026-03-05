@@ -90,7 +90,9 @@ classDiagram
         +Connection(EventLoop *loop, Socket *sock)
         +~Connection()
         +handleReadEvent() void
+        +handleWriteEvent() void
         +business() void
+        +send() void
         +setDeleteConnectionCallback(function cb) void
         +setOnMessageCallback(function cb) void
     }
