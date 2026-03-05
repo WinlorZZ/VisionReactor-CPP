@@ -5,6 +5,7 @@
 #include "ThreadPool.h" // 引入实现
 #include <unistd.h>     // for sleep test
 #include <iostream>
+#include <memory>
 
 Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(nullptr) {
     // 初始化线程池和监听器
@@ -52,5 +53,6 @@ void Server::handleDeleteConnection(Socket *clnt_sock) {
     auto it = conns.find(fd);// 通过fd查找conn，如果不在conns里，it = conns.end()
     if(it != conns.end()) {// 如果fd在自己的conns列表中
         conns.erase(fd);// 从列表移除
+        std::cout << "[Server] 已从 Map 中移除 fd " << fd << "，Server 对此连接的所有权已解除。" << std::endl;
     }
 }

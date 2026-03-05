@@ -2,6 +2,7 @@
 
 #include <map>
 #include <functional>
+#include <memory>//shared_ptr
 
 class EventLoop;
 class Socket;
