@@ -10,20 +10,27 @@
 #include <thread> // 对应 std::this_thread
 #include <chrono> // 对应 std::chrono
 
-Connection::Connection(EventLoop *loop, Socket *sock) : loop(loop), sock(sock) {
+Connection::Connection(EventLoop *loop, Socket *sock) : loop(loop), sock(sock), state_(kConnected) {
     //初始化channel
     channel = new Channel(loop, sock->fd());
     //初始化Buffer
     inputBuffer = new Buffer();
     outputBuffer = new Buffer();
+
     //绑定读事件
     std::function<void()> readCb = std::bind(&Connection::handleReadEvent, this);
     channel->setReadCallback(readCb);
     //绑定写事件
     std::function<void()> writeCb = std::bind( &Connection::handleWriteEvent,this );
     channel->setWriteCallback(writeCb);
-    channel->enableReading();
+    // channel->enableReading(); //将注册epoll这一步从构造函数中剔除，以便使用shared_ptr
     // readBuffer = ""; // 初始化
+}
+
+void Connection::connectEstablished(){
+    // 此时shared_ptr可以使用了
+    channel->tie( shared_from_this() );
+    channel->enableReading();
 }
 
 Connection::~Connection() {
@@ -44,43 +51,93 @@ void Connection::setOnMessageCallback(std::function<void( std::shared_ptr<Connec
 // IO 读取 
 // 将该函数设置给Connection管理的对应的channel，channel在被调用handleEvent时会使用该函数
 void Connection::handleReadEvent() {
-    char buf[1024];
-    while(true) {
-        memset(buf, 0, sizeof(buf));
-        ssize_t bytes_read = read(sock->fd(), buf, sizeof(buf));
+    int savedErrno = 0;
+    bool read_something = false;
+
+    // ET 模式的铁律：必须用 while 循环读到 EAGAIN 为止！
+    while (true) {
+        ssize_t n = inputBuffer->readFd(sock->fd(), &savedErrno);
         
-        if(bytes_read > 0) {
-            // [CHANGE] 存入缓冲区，而不是直接 echo
-            inputBuffer->append(buf, bytes_read);
-        } else if(bytes_read == -1 && errno == EINTR) {
-            continue;
-        } else if(bytes_read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            // 数据读完了,但连接不需要销毁，通知等待
-            // 如果读到了数据，通知 Server
-            if(inputBuffer->readableBytes() > 0 && onMessageCallback) {
-                onMessageCallback( shared_from_this() );
-            }
-            break;
-        } else if(bytes_read == 0) {
-            // 断开连接
-            // 通知上层清理
-            if(deleteConnectionCallback) deleteConnectionCallback(sock);
-            break;
+        if (n > 0) {// 读到数据
+            read_something = true; 
+            continue;// 继续下一次调用readFd，调用的时候已经存进inputBuffer了
+        } else if (n == -1 && savedErrno == EINTR) {// 被系统中断打断，继续读
+            continue; 
+        } else if (n == -1 && (savedErrno == EAGAIN || savedErrno == EWOULDBLOCK)) {
+            break; // 内核缓冲区写满，安全退出循环
+        } else if (n == 0) {
+            // 对端正常关闭 (FIN包)
+            std::cout << "[Connection] 收到 FIN，准备断开..." << std::endl;
+            handleClose();
+            break; // 已经要断开了，直接跳出循环
         } else {
-             if(deleteConnectionCallback) deleteConnectionCallback(sock);
-             break;
+            // 发生了其他严重错误
+            std::cout << "[Connection] 读取异常，强行断开..." << std::endl;
+            handleClose();
+            break;
         }
+    }
+    // 将数据处理放到循环外进行（之前在n > 0就处理了）
+    if (inputBuffer->readableBytes() > 0 && onMessageCallback) {
+        onMessageCallback(shared_from_this());
+    }
+    // char buf[1024];
+    // while(true) {
+    //     memset(buf, 0, sizeof(buf));
+    //     ssize_t bytes_read = read(sock->fd(), buf, sizeof(buf));
+        
+    //     if(bytes_read > 0) {
+    //         // [CHANGE] 存入缓冲区，而不是直接 echo
+    //         inputBuffer->append(buf, bytes_read);
+    //     } else if(bytes_read == -1 && errno == EINTR) {
+    //         continue;
+    //     } else if(bytes_read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+    //         // 数据读完了,但连接不需要销毁，通知等待
+    //         // 如果读到了数据，通知 Server
+    //         if(inputBuffer->readableBytes() > 0 && onMessageCallback) {
+    //             onMessageCallback( shared_from_this() );
+    //         }
+    //         break;
+    //     } else if(bytes_read == 0) {
+    //         // 断开连接
+    //         // 通知上层清理
+    //         if(deleteConnectionCallback) deleteConnectionCallback(sock);
+    //         break;
+    //     } else {
+    //          if(deleteConnectionCallback) deleteConnectionCallback(sock);
+    //          break;
+    //     }
+    // }
+}
+
+void Connection::handleClose() {
+    state_ = kDisconnecting; // 状态切换：准备断开
+    channel->disableReading(); // 不再接收新数据
+
+    // 检查是否有残留的未读数据
+    if (outputBuffer->readableBytes() == 0) {
+        // 没有则直接通知server回收
+        if (deleteConnectionCallback) deleteConnectionCallback(sock);
+    } else {
+        std::cout << "[Connection] 触发优雅挥手，发现 Buffer 仍有积压，延迟销毁！" << std::endl;
+        // 留着 EPOLLOUT，让 handleWriteEvent 把剩下的数据发完
     }
 }
 
 // 业务处理 (运行在 Worker 线程)
 void Connection::business() {
-    std::string message = inputBuffer->retrieveAllAsString();
-    if ( message.empty() ) return;// 当读缓冲区为空时返回
+    if ( inputBuffer->readableBytes() == 0 ) return;// 当读缓冲区为空时返回
+    
+    //暂时沿用之前的版本，提取消息
+    std::string message(inputBuffer->peek(), inputBuffer->readableBytes());
+    inputBuffer->retrieveAll(); // 取出后立刻移动读游标
 
-    /*处理业务 (Echo)*/ 
+    /* 处理业务 (Echo) */ 
+    //改用send发送
+    // std::string respond = "Server Echo:" + message;
+    // this->send(respond);
 
-    // //大数据写入测试
+    /* 大数据写入测试 */
     // if (message.find("TEST_FAT") != std::string::npos) {
     //     std::cout << "[Server] 接收到大包指令，生成 5MB 垃圾数据进行压测..." << std::endl;
         
@@ -93,13 +150,13 @@ void Connection::business() {
     // this->send(respond);
     // }
 
-    // 崩溃测试
-    if (message.find("TEST_CRASH") != std::string::npos) {
+    /* 崩溃测试 */
+    if (message.find("TEST_CLASH") != std::string::npos) {
         // 获取当前引用计数（此时 Server 的 map 还没删，所以至少是 2）
         std::cout << "[Worker] 发现碰撞测试请求！当前引用计数: " 
                   << shared_from_this().use_count() << "，准备进入 5 秒深度睡眠..." << std::endl;
 
-        // 【关键】：先睡 5 秒，给你充足的时间去按 Ctrl+C
+        // 睡 5 秒，有充足的时间去按 Ctrl+C
         std::this_thread::sleep_for(std::chrono::seconds(5));
 
         std::cout << "[Worker] 醒来了！现在的引用计数是: " 
@@ -111,16 +168,7 @@ void Connection::business() {
 
         this->send("Can you hear me now?\n");
         return;
-    }
-
-    // write(sock->fd(), readBuffer.c_str(), readBuffer.size());
-    // // 处理完清空
-    // readBuffer.clear();
-
-    // 改用send发送
-    
-    // std::string respond = "Server Echo:" + message;
-    // this->send(respond);
+    } else  this->send("Server Echo:" + message);
 }
 
 // 发送接口，提供给business调用
@@ -165,13 +213,18 @@ void Connection::handleWriteEvent(){
         ssize_t n = write(sock->fd(), outputBuffer->peek(), outputBuffer->readableBytes());
         
         if (n > 0) {
-            // 发送成功 n 字节，向后移动读游标
+            // 发送成功 n 字节，向后移动读游标readerIndex_
             outputBuffer->retrieve(n);
             std::cout << "[HandleWrite] 成功发送 " << n << " 字节，剩余积压 " << outputBuffer->readableBytes() << std::endl;
-            // 【解除 CPU 炸弹】如果发完了，立刻注销 EPOLLOUT！
+            // 【解除 CPU 炸弹】如果发完了，立刻注销 EPOLLOUT
             if (outputBuffer->readableBytes() == 0) {
                 std::cout << "[HandleWrite] 数据发送完毕，注销 EPOLLOUT" << std::endl;
                 channel->disableWriting(); 
+                //如果此时连接准备结束但尚未结束，调用回调函数通知释放connection
+                if(state_ == kDisconnecting ){
+                    std::cout << "[Connection] 残留数据发送完毕，连接安详离世。" << std::endl;
+                    if (deleteConnectionCallback) deleteConnectionCallback(sock);
+                }
             }
         }
     }

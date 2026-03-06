@@ -10,9 +10,17 @@ class Buffer;
 
 class Connection : public std::enable_shared_from_this<Connection>{
 public:
+    // 三个状态：连接保持，准备断开连接，连接已经断开
+    enum StateE { kConnected, kDisconnecting, kDisconnected };
+    
+    // 初始化函数
+    void connectEstablished(); 
+    // 销毁函数
+    void connectDestroyed();
+
     Connection(EventLoop *loop, Socket *sock);
     ~Connection();
-    
+
     // using Callback = std::function<void(Connection*)>; // 回调类型：传自己回去
 
     void setDeleteConnectionCallback(std::function<void(Socket*)> cb);
@@ -32,7 +40,12 @@ public:
     // 写回调，由EventLoop调用
     void handleWriteEvent();
 
+    // ?
+    void handleClose();
+
 private:
+    StateE state_; // 当前连接状态
+
     EventLoop *loop;
     Socket *sock;
     Channel *channel;

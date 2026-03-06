@@ -4,11 +4,16 @@
 #include "EventLoop.h"
 
 Channel::Channel(EventLoop *loop, int fd) 
-    : loop(loop), fd(fd), events(0), revents(0) { };// 构造函数, 初始化 fd 和 loop 指针
+    : loop(loop), fd(fd), events(0), revents(0), isadd(false), tied_(false) { };// 构造函数, 初始化 fd 和 loop 指针
 
 Channel::~Channel() {
     // 析构函数暂时留空
     // 在这里处理从 Epoll 中自动移除的逻辑
+}
+
+void Channel::tie(const std::shared_ptr<void>& obj){
+    tie_ = obj;
+    tied_ = true;
 }
 
 // 启用读事件监听，将事件添加到 epoll 实例中
@@ -23,17 +28,38 @@ void Channel::enableWriting(){
     loop->updateChannel(this);
 }
 
+// 关闭写事件监听 (消除 CPU 炸弹)
 void Channel::disableWriting(){
     events &= ~EPOLLOUT; // 擦除写标签，保留读标签
     loop->updateChannel(this);
 }
 
+// 关闭读事件监听
+void Channel::disableReading(){
+    events &= ~EPOLLIN;
+    loop->updateChannel(this);
+}
+  
 bool Channel::isWriting() const {
     return events & EPOLLOUT;
 }
 
 void Channel::handleEvent() {
     // 处理事件，调用相应的回调函数
+    if(tied_){
+        std::shared_ptr<void> guard = tie_.lock();
+        if(guard){
+            handleEventWithGuard();
+        }else{
+        // 提升失败，对象已销毁，安静地丢弃事件，完美避免段错误
+        // std::cout << "[Channel] 探测到 Connection 已死亡，忽略本次幽灵事件" << std::endl;
+        }    
+    }else{
+        handleEventWithGuard();
+    }
+}
+
+void Channel::handleEventWithGuard(){
     if (revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)) {
         // 有读事件发生
         // EPOLLIN ：普通数据可读
