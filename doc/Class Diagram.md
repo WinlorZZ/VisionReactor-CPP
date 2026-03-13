@@ -128,7 +128,7 @@ classDiagram
     Acceptor o-- EventLoop
     
     %% 4. Connection 拥有 Socket 和 Channel
-    Connection *-- Socket
+    Connection *-- Socket : 在Server创建Connection对象时，Socket被转交给该对象
     Connection *-- Channel
     Connection o-- EventLoop
 
