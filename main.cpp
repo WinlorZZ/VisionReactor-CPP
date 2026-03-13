@@ -1,7 +1,11 @@
 #include "EventLoop.h"
 #include "Server.h"
+#include <signal.h>
 
 int main(){
+    //忽略 SIGPIPE 信号，防止往已关闭的 socket 写数据时程序崩溃
+    signal(SIGPIPE, SIG_IGN);
+    
     // 1. 创建事件循环 (主线程的心脏)
     EventLoop loop;
     // 2. 创建服务器 (拥有 Acceptor 和 ThreadPool)
@@ -11,4 +15,11 @@ int main(){
     loop.loop();
     return 0;
 }
+
+
+/***************************************************************************
+
+修改main，启动gRPC服务进行实验
+
+***************************************************************************/
 

@@ -1,5 +1,5 @@
 ```mermaid
-stateDiagram-v2
+stateDiagram
     [*] --> CallSend : 业务层调用 send(data, len)
     CallSend --> WriteDirectly : 调用底层 write(fd, data, len)
     
@@ -7,7 +7,7 @@ stateDiagram-v2
     FullySent --> [*] : 发送成功结束
     
     WriteDirectly --> PartialSent : n < len (内核缓冲区满 / EAGAIN)
-    PartialSent --> AppendBuffer : 将剩余的 (len - n) 字节\n追加到 OutputBuffer
+    PartialSent --> AppendBuffer : 将剩余的 (len - n) 字节追加到 OutputBuffer
     AppendBuffer --> RegisterEPOLLOUT : 向 EventLoop 注册 EPOLLOUT 可写事件
     
     RegisterEPOLLOUT --> EpollTriggered : 内核将数据发往网络，缓冲区腾出空间，Epoll 触发 handleWrite()

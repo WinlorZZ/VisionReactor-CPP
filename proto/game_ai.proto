@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package game_ai;
+
+// ---------------------------------------------------------
+// 1. 核心数据结构 (Messages)
+// ---------------------------------------------------------
+// 玩家在某一帧的基础物理与 UI 状态
+message PlayerState {
+  // 目标检测框 (用于判断双方的空间距离)
+  float x = 1;
+  float y = 2;
+  float width = 3;
+  float height = 4;
+
+  // 静态 UI 识别结果
+  int32 hp_percent = 5; // 血量百分比 (0-100)
+  int32 drive_gauge = 6; // 核心资源槽数量
+}
+
+// ---------------------------------------------------------
+// 2. 请求与响应契约 (Request & Response)
+// ---------------------------------------------------------
+message FrameRequest {
+  uint64 frame_id = 1; // 异步回调对齐的唯一标识
+  uint64 timestamp_ms = 2; // 时间戳
+  bytes image_data = 3; // 游戏画面流
+}
+
+message FrameResponse {
+  uint64 frame_id = 1; // 回传帧序号
+  
+  PlayerState p1_state = 2; // 1P 状态
+  PlayerState p2_state = 3; // 2P 状态
+  
+  int32 inference_latency_ms = 4; // Python 端的纯推理耗时监控
+}
+
+// ---------------------------------------------------------
+// 3. 微服务接口定义 (Service)
+// ---------------------------------------------------------
+service VisionAI {// rpc 函数名(请求体/message1) returns(回复体/message)
+  rpc AnalyzeFrame(FrameRequest) returns (FrameResponse){}
+}

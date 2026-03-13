@@ -331,8 +331,7 @@ while (true) {
       
     
     **为什么使用位运算？**
-        
-    标志位通常用二进制表示多个开关：
+        标志位通常用二进制表示多个开关：
     ```c++
     EPOLLIN   = 0b0001 (读事件)
     EPOLLPRI  = 0b0010 (高优先级)
@@ -384,7 +383,7 @@ while (true) {
 本项目中`errno`的类型：
 
 - `EAGAIN` (Try again) / `EWOULDBLOCK` (Operation would block)
-  - `read()`时出现：底层的 TCP 接收缓冲区已经被你读空了
+  - `read()`时出现：底层的 TCP 接收缓冲区已经读空了
   - `write()`时出现：底层的 TCP 发送缓冲区已经塞满了
   - 在大多数 Linux 系统中，这两个宏的值是相等的，但为了跨平台兼容性，严谨的代码会把两个都写上：`errno == EAGAIN || errno == EWOULDBLOCK`
 - `EINTR` (Interrupted system call)
@@ -493,8 +492,6 @@ workers.push_back(std::move(new_worker));
     - **避免重复定义错误**：如果内联函数定义在多个源文件中，编译器必须确保它们是完全相同的。如果定义不同，会导致链接错误。
     - **减少函数调用开销**：内联可以消除函数调用的压栈、跳转等开销
     - **可能增加代码大小**：如果一个内联函数被频繁调用，并且函数体较大，那么将其内联可能会导致最终生成的可执行文件变大，因为函数体会在每个调用点重复出现
-
-这是一份为你精心整理的 **C++ 可变参数模板与异步编程** 笔记大纲。它按照我们交流的逻辑顺序，从最基础的“模具”概念一直延伸到复杂的“线程池”实战。
 
 ## 模板编程
 
@@ -667,3 +664,88 @@ auto task = std::make_shared< std::vector<int> >( std::bind() )
 2. **`auto` ... `->**` 是为了解决“还没看到参数就得确定返回值”的尴尬
 3. **`std::future`** 占的是“未来的值”，而不是类型
 4. **模板**是编译期的魔法，**多线程**是运行期的艺术
+
+## Buffer类
+
+### 分散读 (Scatter I/O)
+
+头文件包含`sys/uio.h`
+
+#### 结构体`struct iovec`
+
+```c++
+struct iovec {
+    void  *iov_base;    // 内存块的起始地址
+    size_t iov_len;     // 这块内存的长度
+};
+```
+
+#### 系统调用`readv()`
+
+```c++
+// 函数原型
+ssize_t read(int fd, void *buf, size_t count);
+ssize_t readv(int fd, const struct iovec *iov, int iovcnt);
+```
+
+- `read()`参数
+  - `fd`：你要读取的文件描述符
+  - `buf`：接收数据的内存起始地址（比如 `char buffer[1024];` 的 `buffer`）
+  - `count`：你期望读取的最大字节数（通常就是 `buf` 的容量大小）
+- `readv()`参数
+  - `fd`：文件描述符
+  - `iov`：一个指向 `iovec` 结构体数组的指针
+  - `iovcnt`： `iovec` 数组里有几个元素（即你要读进几块独立的内存，比如之前写的是 `2` 块）
+
+传统的 `read()` 只能把数据读进一块连续的内存里，使用`readv(int fd, const struct iovec *iov, int iovcnt)` 可以拿着你准备好的 `iovec` 数组，执行**分散读**
+
+- 内核在处理 `readv` 时，会先把网卡数据填满第一块内存 (`vec[0]`)
+- 如果数据还有剩，内核会自动无缝地继续填入第二块内存 (`vec[1]`)，中间**不需要用户态代码干预**
+
+## [TCP“粘包/半包”问题](https://blog.csdn.net/zhizhengguan/article/details/119452571)
+
+UDP 协议是“面向报文”的，发一个包就是一个包，自带边界。但 **TCP 是“面向字节流”的**，在 TCP 眼里，如果没有人为规定，一条消息的长度是不确定的
+
+
+
+# proto与gRPC
+
+### 将proto文件生成为可操作的文件
+
+```bash
+protoc -I=. \
+       --cpp_out=. \
+       --grpc_out=. \
+       --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` \
+       your_service.proto
+```
+
+- line1：等同于 `--proto_path=.`
+
+- line2：生成基础的 Protobuf 序列化文件（ `.pb.cc` 和 `.pb.h`），存放在当前目录
+
+- line3：生成 gRPC 专用的网络通信文件（包含服务端的 `Service` 基类和客户端 `Stub` 存根的 `.grpc.pb.cc` 和 `.grpc.pb.h`）
+
+- line4：通过这个参数指定 gRPC 插件的位置（使用`which grpc_cpp_plugin`自动在Linux系统中寻找该插件的绝对路径）
+
+- 标准做法是将其写进CMakeLists.txt中
+  ```cmake
+  add_custom_command(
+        OUTPUT ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_HDRS}
+        COMMAND protobuf::protoc
+        ARGS --grpc_out=${PROTO_BUILD_DIR}
+             --cpp_out=${PROTO_BUILD_DIR}
+             --plugin=protoc-gen-grpc=${gRPC_CPP_PLUGIN_EXECUTABLE}
+             -I ${PROTO_SRC_DIR}
+             ${PROTO_FILE}
+        DEPENDS ${PROTO_FILE}
+  )
+  ```
+
+### 关于stub与信箱cq
+
+[stub](https://blog.csdn.net/ldcigame/article/details/152221072)：是客户端与服务端 之间通信的关键桥梁。它隐藏了底层网络调用、序列化、协议细节，使开发者能像调用本地函数一样调用远程服务
+
+- 是 gRPC 客户端侧的代理对象，封装了对远程 gRPC 服务的调用逻辑
+- 由 Protocol Buffers 编译器（`protoc`）配合 gRPC 插件 自动生成，提供强类型、面向接口的 API
+
