@@ -5,6 +5,8 @@ build/
 # 2. 忽略 IDE 配置 (VSCode, Clion etc)
 .vscode/
 .idea/
+*.swp
+.DS_Store
 
 # 3. 忽略二进制产物目录
 # 只要是 bin 和 lib 下的内容全部忽略
@@ -20,8 +22,22 @@ lib/*
 *.dll
 *.dylib
 
-# 5. 【重要】忽略包含敏感密码的配置文件
-# 我们只提交配置文件的模版 (比如 mysql.conf.example)
+# 5. Protobuf / gRPC 自动生成的代码
+*.pb.cc
+*.pb.h
+*.grpc.pb.cc
+*.grpc.pb.h
+*_pb2.py
+*_pb2_grpc.py
+
+# 6. Python 环境
+__pycache__/
+*.pyc
+venv/
+.env
+
+# 7. 【重要】忽略包含敏感密码的配置文件
+# 只提交配置文件的模版 (比如 mysql.conf.example)
 # 不提交真实的 mysql.conf
 mysql.conf
 
