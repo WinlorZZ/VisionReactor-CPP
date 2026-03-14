@@ -96,7 +96,15 @@ classDiagram
         +setDeleteConnectionCallback(function cb) void
         +setOnMessageCallback(function cb) void
     }
-
+	class AsyncAIEngine{
+		-struct AsyncClientCall
+		-std::unique_ptr<VisionAI::Stub> stub_
+		-CompletionQueue cq_
+		-std::thread cq_thread
+		-ThreadPool* threadpool
+		-AsyncCompleteRpc() void
+		+AnalyzeFrameAsync(uint64_t frame_id,std::string&& image_date) void
+	}
     %% =======================
     %% 中央控制层 (Controller)
     %% =======================
@@ -127,6 +135,7 @@ classDiagram
     Acceptor *-- Channel
     Acceptor o-- EventLoop
     
+    
     %% 4. Connection 拥有 Socket 和 Channel
     Connection *-- Socket : 在Server创建Connection对象时，Socket被转交给该对象
     Connection *-- Channel
@@ -137,6 +146,7 @@ classDiagram
     Server *-- ThreadPool
     Server *-- Connection : 在调用handleNewConnection函数时创建；在析构时统一释放或通过回调函数单独释放
     Server o-- EventLoop
+    Server *-- AsyncAIEngine
 
     %% 6. Epoll 实际上持有 Channel 指针 (通过 epoll_event.data.ptr)
     Epoll o-- Channel 
