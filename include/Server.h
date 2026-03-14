@@ -4,11 +4,14 @@
 #include <functional>
 #include <memory>//shared_ptr
 
+
+// 前置声明
 class EventLoop;
 class Socket;
 class Acceptor;
 class Connection;
-class ThreadPool; // 前置声明
+class ThreadPool; 
+class AsyncAIEngine;
 
 class Server {
 public:
@@ -27,4 +30,5 @@ private:
     std::map<int, std::shared_ptr<Connection> > conns;// 组合，每个fd对应一个conn，通过查找fd来查找conn
     
     ThreadPool *threadPool; // 组合
+    std::unique_ptr<AsyncAIEngine> aiengine;
 };

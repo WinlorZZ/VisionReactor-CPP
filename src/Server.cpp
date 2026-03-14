@@ -2,10 +2,13 @@
 #include "Socket.h"
 #include "Acceptor.h"
 #include "Connection.h"
-#include "ThreadPool.h" // 引入实现
+#include "ThreadPool.h" // 其他类头文件
+#include "AsyncAIEngine.h"
 #include <unistd.h>     // for sleep test
 #include <iostream>
 #include <memory>
+#include <grpcpp/grpcpp.h>
+#include "../proto/game_ai.grpc.pb.h"
 
 Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(nullptr) {
     // 初始化线程池和监听器
@@ -14,6 +17,8 @@ Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(null
     // 设置acceptor的消息回调函数，让他以这个方式通知自己
     std::function<void(Socket*)> cb = std::bind(&Server::handleNewConnection, this, std::placeholders::_1);
     acceptor->setNewConnectionCallback(cb);
+    auto gchannel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
+    aiengine = std::make_unique<AsyncAIEngine>(gchannel, threadPool);
 }
 
 Server::~Server() {
@@ -39,12 +44,14 @@ void Server::handleNewConnection(Socket *clnt_sock) {
 
 // 3. 任务分发中心 (主线程执行)
 void Server::handleOnMessage(std::shared_ptr<Connection> conn) {
+    // 把引擎指针给线程
+    AsyncAIEngine* engine_ptr = aiengine.get();
     // 将任务扔进线程池，主线程立刻返回
-    threadPool->add([conn](){
+    threadPool->add([conn , engine_ptr ](){
         // --- 以下代码在 Worker 线程执行 ---
         // std::cout << "Worker handling..." << std::endl;
         // sleep(3); // 可选：模拟耗时测试并发
-        conn->business(); // 执行具体的业务逻辑
+        conn->business( engine_ptr ); // 执行具体的业务逻辑
     });
     //执行后，主线程立刻返回loop继续epoll_wait
 }

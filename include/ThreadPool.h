@@ -45,7 +45,7 @@ inline ThreadPool::ThreadPool(size_t threads)
                             return; // 如果线程池停止且没有任务，退出线程
                         // 从任务队列中取出一个任务
                         task = std::move(this->tasks.front());
-                        this->tasks.pop(); // 从队列中移除任务\
+                        this->tasks.pop(); // 从队列中移除任务
                         // 临界区结束，自动解锁
                     }
                     // 执行任务，std::function对象的调用运算符被重载，可以直接调用对象来执行任务

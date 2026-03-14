@@ -11,7 +11,7 @@
 #include <grpcpp/grpcpp.h>
 #include "../proto/game_ai.grpc.pb.h"
 
-using grpc::Channel;
+// using grpc::Channel;//使用该命名空间存在冲突
 using grpc::ClientAsyncResponseReader;
 using grpc::ClientContext;
 using grpc::CompletionQueue;

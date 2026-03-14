@@ -6,9 +6,11 @@
 #include <iostream>
 #include <memory> // shared_from_this
 #include "Buffer.h"
+#include "AsyncAIEngine.h"
 
 #include <thread> // 对应 std::this_thread
 #include <chrono> // 对应 std::chrono
+#include <atomic> // std::atomic
 
 Connection::Connection(EventLoop *loop, Socket *sock) : loop(loop), sock(sock), state_(kConnected) {
     //初始化channel
@@ -125,7 +127,7 @@ void Connection::handleClose() {
 }
 
 // 业务处理 (运行在 Worker 线程)
-void Connection::business() {
+void Connection::business(AsyncAIEngine* engine_ptr) {
     if ( inputBuffer->readableBytes() == 0 ) return;// 当读缓冲区为空时返回
     
     //暂时沿用之前的版本，提取消息
@@ -137,18 +139,7 @@ void Connection::business() {
     // std::string respond = "Server Echo:" + message;
     // this->send(respond);
 
-    /* 大数据写入测试 */
-    // if (message.find("TEST_FAT") != std::string::npos) {
-    //     std::cout << "[Server] 接收到大包指令，生成 5MB 垃圾数据进行压测..." << std::endl;
-        
-    //     // 生成 5,242,880 字节的 'A'
-    //     std::string fat_response(5 * 1024 * 1024, 'A'); 
-    //     fat_response += "\n--- GIGANTIC DATA END ---\n";
-        
     
-    // std::string respond =fat_response;//测试用例
-    // this->send(respond);
-    // }
 
     /* 崩溃测试 */
     if (message.find("TEST_CLASH") != std::string::npos) {
@@ -168,7 +159,30 @@ void Connection::business() {
 
         this->send("Can you hear me now?\n");
         return;
-    } else  this->send("Server Echo:" + message);
+    }
+    /* 大数据写入测试 */
+    else if (message.find("TEST_FAT") != std::string::npos) {
+        std::cout << "[Server] 接收到大包指令，生成 5MB 垃圾数据进行压测..." << std::endl;
+        
+        // 生成 5,242,880 字节的 'A'
+        std::string fat_response(5 * 1024 * 1024, 'A'); 
+        fat_response += "\n--- GIGANTIC DATA END ---\n";
+        
+    
+    std::string respond =fat_response;//测试用例
+    this->send(respond);
+    }
+    /* AI链路测试 */
+    else if(message.find("AITEST") != std::string::npos){
+        // 使用原子变量生成线程安全的自增 Frame ID (模拟游戏帧序列)
+        static std::atomic<uint64_t> global_frame_id{1000}; 
+        uint64_t current_frame_id = global_frame_id++;
+        std::cout << "[业务层] 拦截到玩家数据，不再 Echo，直接转交 AI 网关 -> FrameID: " 
+                  << current_frame_id << "\n";
+        // 将客户端发来的 message 当作图像二进制数据扔给 AI 引擎
+        engine_ptr->AnalyzeFrameAsync(current_frame_id, std::move(message));
+    }
+    else  this->send("Server Echo:" + message);
 }
 
 // 发送接口，提供给business调用

@@ -7,6 +7,7 @@ class EventLoop;
 class Socket;
 class Channel;
 class Buffer;
+class AsyncAIEngine;
 
 class Connection : public std::enable_shared_from_this<Connection>{
 public:
@@ -32,7 +33,7 @@ public:
     void handleReadEvent();
     
     // 负责处理数据 (计算/业务)
-    void business(); 
+    void business( AsyncAIEngine* engine_ptr ); 
 
     // 发送接口，业务处理完后调用此接口发送数据
     void send(const std::string& msg);
