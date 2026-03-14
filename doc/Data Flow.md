@@ -1,24 +1,46 @@
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant OS as Kernel (Epoll)
-    participant M as Main Thread (Server)
-    participant Q as Task Queue
-    participant W as Worker Thread
+    autonumber
+    
+    %% 定义参与者，按照真实的物理边界排列
+    participant C as  Client (nc)
+    participant M as  Main Reactor (Epoll)
+    participant TP as  ThreadPool (Workers)
+    participant AI as  AsyncAIEngine (CQ Thread)
+    participant Py as  Python AI Server
 
-    Note over C, W: 阶段 1: 接收与分发 (IO Intensive)
-    C->>OS: 发送数据 "Hello"
-    OS->>M: Epoll Event (Readable)
-    M->>M: read() 从 Socket 读取数据
-    M->>Q: add(Task) [包含 Connection* 和数据]
-    Note right of M: 主线程任务完成，<br/>立即返回处理下一个 Event
-    
-    Note over C, W: 阶段 2: 业务处理 (CPU Intensive)
-    Q->>W: notify_one() 唤醒 Worker
-    W->>Q: pop() 取出任务
-    W->>W: 执行业务逻辑 (Echo / AI推理)
-    Note right of W: 这里可以 sleep 5秒<br/>不会阻塞 Main Thread
-    
-    Note over C, W: 阶段 3: 响应 (IO Operation)
-    W->>C: write() 发送回显 "Hello"
+    Note over C, M: 阶段 1: 网络接收与极速分发 (主干道 0 阻塞)
+    C->>M: TCP 发送玩家图像帧数据
+    activate M
+    M->>M: epoll_wait 唤醒，读入 Buffer
+    M->>TP: 投递任务：Connection::business()
+    deactivate M
+    Note left of M: 主线程耗时 < 1ms<br/>立刻回头监听其他客户端
+
+    Note over TP, Py: 阶段 2: 异步发射与线程释放 (Worker 0 阻塞)
+    activate TP
+    TP->>TP: Worker A 抢到任务，生成 FrameID
+    TP->>AI: 调用 AnalyzeFrameAsync()
+    AI--)Py: [gRPC Async] 发射图像数据
+    deactivate TP
+    Note right of TP: Worker A 发完回到线程池，不等待 AI 运算
+
+    Note over AI, Py: 阶段 3: AI 深度学习推理 (跨进程/跨机器)
+    activate Py
+    Py->>Py: 模拟 YOLO 运算 (耗时 50ms~几秒)
+    Py--)AI: [gRPC Async] 返回推理结果 (HP/坐标等)
+    deactivate Py
+
+    Note over TP, AI: 阶段 4: CQ 捕获与二次调度
+    activate AI
+    AI->>AI: CQ 守护线程 (cq_.Next) 捕获到 Python 回执
+    AI->>TP: 重新投递任务：AsyncCompleteRpc 回调逻辑
+    deactivate AI
+
+    Note over C, TP: 阶段 5: 结果格式化与网络下发
+    activate TP
+    TP->>TP: Worker B (或 A) 抢到回调任务
+    TP->>C: TCP send() 发送最终结果
+    deactivate TP
+    Note left of C: 客户端收到AI 分析结果
 ```
