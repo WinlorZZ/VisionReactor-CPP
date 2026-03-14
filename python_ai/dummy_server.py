@@ -45,11 +45,15 @@ def serve():
     # 3. 绑定监听端口 (50051 是 gRPC 默认的经典测试端口)
     server.add_insecure_port('[::]:50051')
     
-    print("🚀 Vision AI Dummy Server is running on port 50051...")
+    print(" Vision AI Dummy Server is running on port 50051...")
     
     # 4. 启动并阻塞主线程，保持服务器常驻
     server.start()
-    server.wait_for_termination()
+    try:
+        server.wait_for_termination()
+    except  KeyboardInterrupt:
+        server.stop(0) # 0 表示立即停止
+        print("[+] AI 服务已退出")
 
 if __name__ == '__main__':
     serve()
