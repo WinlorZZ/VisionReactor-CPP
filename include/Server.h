@@ -21,7 +21,7 @@ public:
     void handleNewConnection(Socket *sock);
     void handleDeleteConnection(Socket *sock);
     
-    // [NEW] 专门处理从 Connection 发来的业务请求
+    // 专门处理从 Connection 发来的业务请求
     void handleOnMessage(std::shared_ptr<Connection> conn);
 
 private:
@@ -29,6 +29,6 @@ private:
     Acceptor *acceptor;// 组合
     std::map<int, std::shared_ptr<Connection> > conns;// 组合，每个fd对应一个conn，通过查找fd来查找conn
     
+    std::unique_ptr<AsyncAIEngine> aiengine;// 组合，且声明在线程池之前
     ThreadPool *threadPool; // 组合
-    std::unique_ptr<AsyncAIEngine> aiengine;
 };
