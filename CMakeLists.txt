@@ -17,10 +17,14 @@ find_package(Threads REQUIRED)
 # 查找系统中安装的 gRPC 和 Protobuf
 find_package(Protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
+# 查找OpenCV
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 # 设置 protoc 编译器和 grpc 插件的路径
 set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
 set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+
 # 实时生成 gRPC 代码
 set(HW_PROTO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/proto/game_ai.proto")
 set(HW_PROTO_SRCS "${CMAKE_CURRENT_BINARY_DIR}/game_ai.pb.cc")
@@ -49,4 +53,5 @@ target_link_libraries(server
     Threads::Threads          # ThreadPool 需要的 pthread
     gRPC::grpc++              # gRPC 核心库
     protobuf::libprotobuf     # Protobuf 核心库
+    ${OpenCV_LIBS}
 )
