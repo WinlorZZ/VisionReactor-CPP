@@ -7,6 +7,7 @@
 #include <memory> // shared_from_this
 #include "Buffer.h"
 #include "AsyncAIEngine.h"
+#include <opencv2/opencv.hpp>// cv::Mat
 
 #include <thread> // 对应 std::this_thread
 #include <chrono> // 对应 std::chrono
@@ -174,13 +175,32 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
     }
     /* AI链路测试 */
     else if(message.find("AITEST") != std::string::npos){
-        // 使用原子变量生成线程安全的自增 Frame ID (模拟游戏帧序列)
         static std::atomic<uint64_t> global_frame_id{1000}; 
         uint64_t current_frame_id = global_frame_id++;
-        std::cout << "[业务层] 拦截到玩家数据，不再 Echo，直接转交 AI 网关 -> FrameID: " 
-                  << current_frame_id << "\n";
-        // 将客户端发来的 message 当作图像二进制数据扔给 AI 引擎
-        engine_ptr->AnalyzeFrameAsync(current_frame_id, std::move(message));
+        std::cout << "[业务层] 拦截到玩家指令，开始装填视觉弹药 -> FrameID: " << current_frame_id << "\n";
+
+        // 1. 读取图片(请确保 build 目录下真的放了 test_frame.jpg)
+        // 建议写绝对路径，防止工作目录不对。比如："/home/equinn/Network/build/test_frame.jpg"
+        cv::Mat img = cv::imread("test_frame.jpg"); 
+        
+        if (img.empty()) {
+            std::cerr << "[-] 致命错误：OpenCV 读取图片失败！是不是忘放 test_frame.jpg 了？\n";
+            return; // 读不到图直接拦截，绝不发空包！
+        }
+
+        // 2. 图像压缩 (这步极其重要，把几MB的图压到几十KB，节省局域网带宽)
+        cv::Mat resized_img;
+        cv::resize(img, resized_img, cv::Size(640, 640));
+        std::vector<uchar> buffer;
+        cv::imencode(".jpg", resized_img, buffer);
+        
+        std::string image_bytes(buffer.begin(), buffer.end());
+
+        // 【日志打印】：打印真实装填的字节数
+        std::cout << "[Worker] 图片准备发送的字节数: " << image_bytes.size() << " bytes\n";
+
+        // 3. 发送图片数据
+        engine_ptr->AnalyzeFrameAsync(current_frame_id, std::move(image_bytes));
     }
     else  this->send("Server Echo:" + message);
 }

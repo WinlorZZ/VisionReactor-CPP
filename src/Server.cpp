@@ -8,7 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <grpcpp/grpcpp.h>
-#include "../proto/game_ai.grpc.pb.h"
+#include "game_ai.grpc.pb.h"
 
 Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(nullptr) {
     // 初始化线程池和监听器
@@ -17,7 +17,8 @@ Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(null
     // 设置acceptor的消息回调函数，让他以这个方式通知自己
     std::function<void(Socket*)> cb = std::bind(&Server::handleNewConnection, this, std::placeholders::_1);
     acceptor->setNewConnectionCallback(cb);
-    auto gchannel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
+    // 设置连接的对端IP和本地端口
+    auto gchannel = grpc::CreateChannel("172.30.230.131:50051", grpc::InsecureChannelCredentials());
     aiengine = std::make_unique<AsyncAIEngine>(gchannel, threadPool);
 }
 

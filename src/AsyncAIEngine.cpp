@@ -5,7 +5,7 @@
 //传入gRPC通道和线程池指针ThreadPool*
 AsyncAIEngine::AsyncAIEngine(std::shared_ptr<grpc::Channel> gchannel,
     ThreadPool* pool) : 
-    stub_(game_ai::VisionAI::NewStub(gchannel)), 
+    stub_(vision::VisionAI::NewStub(gchannel)), 
     threadpool(pool){
     cq_thread = std::thread(&AsyncAIEngine::AsyncCompleteRpc,this);
 }
@@ -19,10 +19,11 @@ AsyncAIEngine::~AsyncAIEngine(){
 
 // 发起异步请求 (在线程中运行)
 void AsyncAIEngine::AnalyzeFrameAsync(uint64_t frame_id,std::string&& image_date){
-    game_ai::FrameRequest request;
+    vision::FrameRequest request;
     request.set_frame_id(frame_id);// 帧id
     request.set_timestamp_ms(98874);// 时间戳
-
+    request.set_image_data(std::move(image_date));// 图片数据
+    
     AsyncClientCall* call = new AsyncClientCall;
     call->response_reader = stub_->PrepareAsyncAnalyzeFrame(&call->context, request, &cq_);
     call->response_reader->StartCall();
@@ -41,16 +42,29 @@ void AsyncAIEngine::AsyncCompleteRpc(){
         if( call->status.ok() && ok ){
             // 把处理结果打包成一个新的任务，扔回 ThreadPool
             // 复制出需要的数据，防止 call 被 delete 后指针失效
-            uint64_t fid = call->reply.frame_id();
-            int hp = call->reply.p1_state().hp_percent();
+            // 深拷贝，防止指针逃逸
+            vision::FrameResponse reply_copy = call->reply;
             
-            threadpool->add([fid, hp]() {
+            threadpool->add([reply_copy]() {
                 std::cout << "[Worker Thread] [+] 拿到 AI 回调结果！Frame ID: " 
-                          << fid << " | P1 HP: " << hp << "%\n"
+                          << reply_copy.frame_id() 
+                          << " | 推理耗时: " 
+                          << reply_copy.inference_latency_ms()
+                          << "ms\n"
                           << "                -> 正在通过 TCP 将结果发回游戏客户端...\n";
                 // TODO: 未来在这里执行网络发包回客户端，或者异步 MySQL 落库
+                for(int i = 0;i< reply_copy.boxes_size(); i++){
+                    const auto&box = reply_copy.boxes(i);
+                    std::cout << "                -> 锁定目标: [" << box.class_name() << "] "
+                              << "置信度: " << box.confidence()
+                              << " | 中心点: (" << box.x() << ", " << box.y() << ")"
+                              << " | 宽高: " << box.width() << "x" << box.height() << "\n";
+                }
             });
-            std::cout << "[-] 丢包或 AI 服务崩溃！Frame ID: " << call->reply.frame_id() << "\n";
+        }else {
+            std::cout << "[CQ Thread] [-] 丢包或 AI 服务崩溃！ RPC 状态码: " 
+                      << call->status.error_code() 
+                      << " | 错误信息: " << call->status.error_message() << "\n";
         }
         delete call;
     }

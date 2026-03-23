@@ -1,24 +1,23 @@
 #pragma once
-
 #include <memory>
 #include <string>
-#include <thread>
-#include <grpcpp/grpcpp.h>
-#include "../proto/game_ai.grpc.pb.h"
 #include "ThreadPool.h"
+#include <thread>
 
 // 引入 gRPC 核心库和生成的契约头文件
 #include <grpcpp/grpcpp.h>
-#include "../proto/game_ai.grpc.pb.h"
+#include "game_ai.pb.h"
+#include "game_ai.grpc.pb.h"
 
 // using grpc::Channel;//使用该命名空间存在冲突
 using grpc::ClientAsyncResponseReader;
 using grpc::ClientContext;
 using grpc::CompletionQueue;
 using grpc::Status;
-using game_ai::VisionAI;
-using game_ai::FrameRequest;
-using game_ai::FrameResponse;
+
+using vision::VisionAI;
+using vision::FrameRequest;
+using vision::FrameResponse;
 
 class AsyncAIEngine{
 public:

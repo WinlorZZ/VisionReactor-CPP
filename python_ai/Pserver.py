@@ -18,6 +18,7 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
     # 方法名变为 AnalyzeFrame
     def AnalyzeFrame(self, request, context):
         start_time = time.time()
+        print(f"[AI Engine] 收到 Frame: {request.frame_id}, Payload 大小: {len(request.image_data)} bytes")
         
         nparr = np.frombuffer(request.image_data, np.uint8)
         img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
