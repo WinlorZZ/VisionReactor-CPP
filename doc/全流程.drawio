@@ -1,0 +1,605 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0" version="29.3.8">
+  <diagram name="第 1 页" id="CwLHtE2a1qmLbGpOSZKe">
+    <mxGraphModel dx="2835" dy="1222" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vVNUTicZXunmT6oap0Y4-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="客户端" vertex="1">
+          <mxGeometry height="60" width="120" x="30" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-2" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="89.5" y="70" as="sourcePoint" />
+            <mxPoint x="90" y="1360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="服务端" vertex="1">
+          <mxGeometry height="60" width="120" x="550" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-4" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="609.5" y="70" as="sourcePoint" />
+            <mxPoint x="610" y="1360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-5" parent="1" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" value="服务启动" vertex="1">
+          <mxGeometry height="40" width="100" x="620" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-6" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="720" y="130" as="sourcePoint" />
+            <mxPoint x="790" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-10" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-9" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-12" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="创建事件循环" vertex="1">
+          <mxGeometry height="60" width="120" x="790" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-16" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-15" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-27" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-26" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="创建服务器" vertex="1">
+          <mxGeometry height="60" width="120" x="990" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-14" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-13" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-11" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="创建epoll" vertex="1">
+          <mxGeometry height="60" width="120" x="790" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-13" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="epoll构造时，调用&lt;font style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(241, 255, 99));&quot;&gt;&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;epoll_cre&lt;/span&gt;&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;font style=&quot;&quot;&gt;ate1&lt;/font&gt;&lt;/span&gt;&lt;/font&gt;&lt;div&gt;&lt;font face=&quot;Helvetica&quot;&gt;&lt;span style=&quot;font-size: 14px; white-space: pre; background-color: light-dark(#ffffff, var(--ge-dark-color, #121212));&quot;&gt;创建epoll实例并返回fd&lt;/span&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="160" x="770" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-18" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-17" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1050" y="310" />
+              <mxPoint x="980" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-15" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="构造同时，初始化线程池、监听器，并给监听器设置回调函数&lt;br&gt;同时设置gRPC框架下的对端IP和本地端口" vertex="1">
+          <mxGeometry height="90" width="120" x="990" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-23" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-79" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1050" y="310" />
+              <mxPoint x="1110" y="310" />
+              <mxPoint x="1110" y="380" />
+              <mxPoint x="1420" y="380" />
+              <mxPoint x="1420" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-90" connectable="0" parent="vVNUTicZXunmT6oap0Y4-23" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="创建线程池" vertex="1">
+          <mxGeometry relative="1" x="-0.1739" y="1" as="geometry">
+            <mxPoint x="66" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-17" parent="1" style="whiteSpace=wrap;html=1;rounded=1;align=left;" value="acceptor创建：&lt;br&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;1.初始化socket，绑定、监听、非阻塞&lt;/span&gt;&lt;/div&gt;2.创建channel，&lt;br&gt;绑定读回调函数至channel；开启监听&lt;br&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="120" x="920" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-29" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-28" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-26" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="启动事件循环" vertex="1">
+          <mxGeometry height="60" width="120" x="1190" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-31" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-30" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="loop方法调用epoll的poll方法" vertex="1">
+          <mxGeometry height="60" width="120" x="1190" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-30" parent="1" style="whiteSpace=wrap;html=1;rounded=1;fillColor=#a20025;fontColor=#ffffff;strokeColor=#6F0000;" value="epoll调用poll时，调用&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(220, 220, 170), rgb(241, 255, 99));&quot;&gt;epoll_wait&lt;/font&gt;&lt;/span&gt;&lt;div&gt;等待客户端连接&lt;span style=&quot;color: rgb(220, 220, 170); background-color: rgb(31, 31, 31); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="1190" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-32" parent="1" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" value="&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 102));&quot;&gt;epoll_wait&lt;/font&gt;&lt;font style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 255));&quot;&gt;返回&lt;/font&gt;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="150" x="620" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-33" parent="1" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" value="&lt;font face=&quot;Consolas, Courier New, monospace&quot; style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 102));&quot;&gt;&lt;span style=&quot;font-size: 14px; white-space: pre;&quot;&gt;nc 127.0.0.1 8888&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="200" x="-120" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-34" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-33" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-32" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="260" y="500" as="sourcePoint" />
+            <mxPoint x="610" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-35" parent="1" style="whiteSpace=wrap;html=1;" value="客户端TCP连接" vertex="1">
+          <mxGeometry height="60" width="120" x="293.5" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-39" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-38" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="770" y="700" as="sourcePoint" />
+            <mxPoint x="937" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-41" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-40" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-38" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="epoll成员变量记录事件，然后将就绪事件的channel指针返回给上层" vertex="1">
+          <mxGeometry height="60" width="120" x="840" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-43" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-42" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1150" y="750" />
+              <mxPoint x="1020" y="750" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-68" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-67" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-40" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="上层eventloop对象让channel各自调用处理逻辑" vertex="1">
+          <mxGeometry height="60" width="120" x="1090" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-45" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-44" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-42" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="若是作为acceptor的channel，tied_变量为false，直接调用函数，并处理读事件，调用回调函数处理新连接" vertex="1">
+          <mxGeometry height="90" width="120" x="960" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-47" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-46" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-44" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="处理新连接：获取地址块信息；设置socket为非阻塞模式；调用回调函数并将客户socket交给上层server" vertex="1">
+          <mxGeometry height="95" width="120" x="960" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-50" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-49" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="890" y="1139" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-52" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-51" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-46" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="创建Connection并管理，设置消息回调和删除回调" vertex="1">
+          <mxGeometry height="60" width="120" x="830" y="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-56" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-55" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-57" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-55" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-59" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="vVNUTicZXunmT6oap0Y4-58" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-48" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="若是作为connection类的channel，根据情况处理" vertex="1">
+          <mxGeometry height="60" width="120" x="1220" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-49" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="一路返回到eventloop并执行下一次循环" vertex="1">
+          <mxGeometry height="60" width="120" x="950" y="1109" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-51" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="创建channel，给channel绑定读写事件函数；初始化输入缓冲区和输出缓冲区" vertex="1">
+          <mxGeometry height="60" width="120" x="980" y="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-53" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-40" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-48" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="1150" y="750" />
+              <mxPoint x="1280" y="750" />
+            </Array>
+            <mxPoint x="840" y="1000" as="sourcePoint" />
+            <mxPoint x="1241" y="770" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-54" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-51" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-48" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="800" />
+            </Array>
+            <mxPoint x="840" y="1000" as="sourcePoint" />
+            <mxPoint x="890" y="950" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-64" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-63" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-55" parent="1" style="whiteSpace=wrap;html=1;rounded=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" value="读事件处理：将数据存储在输入缓冲区" vertex="1">
+          <mxGeometry height="60" width="120" x="1150" y="897.5" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-70" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-58" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-69" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-115" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-58" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-116" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1620" y="928" />
+              <mxPoint x="1620" y="650" />
+            </Array>
+            <mxPoint x="1680.0588235294122" y="690" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-156" connectable="0" parent="vVNUTicZXunmT6oap0Y4-115" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="具体过程" vertex="1">
+          <mxGeometry relative="1" x="0.656" y="-3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-58" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d80073;fontColor=#ffffff;strokeColor=#A50040;" value="写事件处理" vertex="1">
+          <mxGeometry height="60" width="120" x="1290" y="897.5" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-66" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-65" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-63" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="调用回调函数&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212));&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(156, 220, 254), rgb(22, 124, 178));&quot;&gt;onMessageCallback&lt;/font&gt;&lt;/span&gt;&lt;font style=&quot;color: light-dark(rgb(156, 220, 254), rgb(22, 124, 178));&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;处理数据&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="1150" y="990" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-65" parent="1" style="whiteSpace=wrap;html=1;rounded=1;fillColor=#e51400;fontColor=#ffffff;strokeColor=#B20000;" value="回调函数将任务分发给线程池" vertex="1">
+          <mxGeometry height="60" width="120" x="1150" y="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-67" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="继续阻塞，等待下一次事件发生" vertex="1">
+          <mxGeometry height="60" width="120" x="1330" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-69" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="系统调用&lt;font style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 102));&quot;&gt;write&lt;/font&gt;：将数据交给OS，服务端进行后续处理" vertex="1">
+          <mxGeometry height="60" width="120" x="1290" y="990" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-71" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-74" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points" />
+            <mxPoint x="950" y="1180" as="sourcePoint" />
+            <mxPoint x="720" y="1230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-75" parent="1" style="whiteSpace=wrap;html=1;" value="TCP/IP 协议发送数据" vertex="1">
+          <mxGeometry height="60" width="120" x="294" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-76" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-74" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-78" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="610" y="1230" as="sourcePoint" />
+            <mxPoint x="70" y="1230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-77" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-69" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-74" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="1230" />
+            </Array>
+            <mxPoint x="1350" y="1050" as="sourcePoint" />
+            <mxPoint x="800" y="1230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-74" parent="1" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;direction=west;" value="系统处理数据并发回客户端" vertex="1">
+          <mxGeometry height="40" width="200" x="620" y="1210" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-78" parent="1" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;direction=west;" value="客户端接受数据并处理" vertex="1">
+          <mxGeometry height="40" width="200" x="-120" y="1210" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-92" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-79" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-91" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-79" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="线程池" vertex="1">
+          <mxGeometry height="60" width="120" x="1510" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-99" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-98" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-83" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="任务队列接收到任务，队列非空，线程被唤醒" vertex="1">
+          <mxGeometry height="60" width="120" x="1510" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-86" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-65" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-83" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="1570" y="1110" />
+            </Array>
+            <mxPoint x="1540" y="940" as="sourcePoint" />
+            <mxPoint x="1540" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-87" connectable="0" parent="vVNUTicZXunmT6oap0Y4-86" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBorderColor=none;textShadow=0;labelBackgroundColor=default;" value="&lt;div style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space-collapse: preserve;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 102));&quot;&gt;threadPool-&amp;gt;add&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.1114" y="2" as="geometry">
+            <mxPoint x="-8" y="-442" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-95" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-94" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-110" connectable="0" parent="vVNUTicZXunmT6oap0Y4-95" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="进入临界区" vertex="1">
+          <mxGeometry relative="1" x="-0.1088" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-91" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="初始化线程池：workers.emplace_back创建一定数量线程" vertex="1">
+          <mxGeometry height="60" width="150" x="1710" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-94" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="所有阻塞在cv.wait，等待任务分配" vertex="1">
+          <mxGeometry height="60" width="120" x="1955" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-97" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-94" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-83" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1540" y="260" as="sourcePoint" />
+            <mxPoint x="1590" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-106" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-98" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-105" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-109" connectable="0" parent="vVNUTicZXunmT6oap0Y4-106" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="出临界区" vertex="1">
+          <mxGeometry relative="1" x="-0.1952" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-98" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="使用move取出任务，并从任务队列移除该任务" vertex="1">
+          <mxGeometry height="60" width="120" x="1710" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-168" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-105" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-166">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1990" y="300" />
+              <mxPoint x="1990" y="300" />
+            </Array>
+            <mxPoint x="2100" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-169" connectable="0" parent="vVNUTicZXunmT6oap0Y4-168" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=default;" value="&lt;div style=&quot;color: rgb(204, 204, 204); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space-collapse: preserve;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.3833" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-172" connectable="0" parent="vVNUTicZXunmT6oap0Y4-168" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&quot;AITEST&quot;" vertex="1">
+          <mxGeometry relative="1" x="-0.4388" y="2" as="geometry">
+            <mxPoint y="17" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-105" parent="1" style="whiteSpace=wrap;html=1;rounded=1;" value="执行任务" vertex="1">
+          <mxGeometry height="60" width="120" x="1930" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-111" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-105" style="curved=1;endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-94" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="2120" y="235" />
+              <mxPoint x="2160" y="210" />
+              <mxPoint x="2160" y="160" />
+              <mxPoint x="2120" y="130" />
+            </Array>
+            <mxPoint x="2340" y="205" as="sourcePoint" />
+            <mxPoint x="2160" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-112" connectable="0" parent="vVNUTicZXunmT6oap0Y4-111" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Text" vertex="1">
+          <mxGeometry relative="1" x="-0.3465" y="3" as="geometry">
+            <mxPoint x="28" y="-34" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-113" connectable="0" parent="vVNUTicZXunmT6oap0Y4-111" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="继续下一次循环" vertex="1">
+          <mxGeometry relative="1" x="0.0456" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-118" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-116" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-117" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-116" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="（ET模式）循环读" vertex="1">
+          <mxGeometry height="60" width="120" x="1800" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-120" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-117" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-119" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-122" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-117" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-121" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-117" parent="1" style="whiteSpace=wrap;html=1;rounded=1;fontColor=default;labelBorderColor=none;textShadow=0;labelBackgroundColor=default;" value="&lt;div style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-family: Helvetica; font-size: 12px; white-space: normal;&quot;&gt;调用&lt;br&gt;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&lt;font style=&quot;&quot;&gt;&lt;span style=&quot;color: light-dark(rgb(156, 220, 254), rgb(22, 124, 178));&quot;&gt;inputBuffer&lt;/span&gt;&lt;font style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 102));&quot;&gt;-&amp;gt;readFd&lt;/font&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space: pre;&quot;&gt;&lt;span style=&quot;font-family: Helvetica; font-size: 12px; white-space: normal;&quot;&gt;读取数据，并获得返回值&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="160" x="1780" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-131" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-119" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-130" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-141" connectable="0" parent="vVNUTicZXunmT6oap0Y4-131" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=14;" value="n&amp;gt;0" vertex="1">
+          <mxGeometry relative="1" x="-0.1444" y="2" as="geometry">
+            <mxPoint x="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-152" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-119" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-149">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1860" y="910" />
+              <mxPoint x="1880" y="910" />
+              <mxPoint x="1880" y="1160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-153" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-144">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1860" y="910" />
+              <mxPoint x="1880" y="910" />
+              <mxPoint x="1880" y="970" />
+            </Array>
+            <mxPoint x="1860" y="880" as="sourcePoint" />
+            <mxPoint x="1880" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-119" parent="1" style="whiteSpace=wrap;html=1;rounded=1;labelBorderColor=none;labelBackgroundColor=default;" value="针对不同的返回值进行处理" vertex="1">
+          <mxGeometry height="60" width="120" x="1800" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-124" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-121" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-123" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-121" parent="1" style="whiteSpace=wrap;html=1;rounded=1;labelBorderColor=none;labelBackgroundColor=default;" value="使用两块内存进行分散读" vertex="1">
+          <mxGeometry height="60" width="120" x="1970" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-126" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-123" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-125" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-123" parent="1" style="whiteSpace=wrap;html=1;rounded=1;labelBorderColor=none;labelBackgroundColor=default;" value="调用&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 102));&quot;&gt;readv&lt;/font&gt;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="1970" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-127" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-125" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-119">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-125" parent="1" style="whiteSpace=wrap;html=1;rounded=1;labelBorderColor=none;labelBackgroundColor=default;" value="发生错误则存储错误码；返回&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(241, 255, 99));&quot;&gt;readv&lt;/font&gt;&lt;/span&gt;的返回值" vertex="1">
+          <mxGeometry height="60" width="120" x="1970" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-140" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="vVNUTicZXunmT6oap0Y4-135">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1860" y="880" />
+              <mxPoint x="1860" y="910" />
+              <mxPoint x="1880" y="910" />
+              <mxPoint x="1880" y="1079" />
+            </Array>
+            <mxPoint x="1830" y="880" as="sourcePoint" />
+            <mxPoint x="1890" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-143" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-145" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="vVNUTicZXunmT6oap0Y4-69">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2250" y="1020" />
+            </Array>
+            <mxPoint x="2260" y="1030" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-155" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-130" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.112;exitY=-0.026;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.042;entryY=0.993;entryDx=0;entryDy=0;entryPerimeter=0;" target="vVNUTicZXunmT6oap0Y4-117" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1723" y="860" />
+              <mxPoint x="1723" y="780" />
+            </Array>
+            <mxPoint x="1760" y="830" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-130" parent="1" style="whiteSpace=wrap;html=1;rounded=1;labelBorderColor=none;labelBackgroundColor=default;" value="读取数据，继续循环读" vertex="1">
+          <mxGeometry height="60" width="120" x="1710" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-148" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-135" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-147" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-135" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="n=0：对端关闭" vertex="1">
+          <mxGeometry height="60" width="120" x="1905" y="1049" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-146" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-144" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-145" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-144" parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;fontColor=light-dark(#F1FF63,#FFFF66);" value="&lt;div style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space: pre;&quot;&gt;&lt;span style=&quot;&quot;&gt;savedErrno&lt;/span&gt; &lt;span style=&quot;&quot;&gt;==&lt;/span&gt; &lt;span style=&quot;&quot;&gt;EAGAIN&lt;/span&gt; &lt;br&gt;&lt;font color=&quot;#ffffff&quot;&gt;或者&lt;/font&gt;&lt;br&gt;&lt;span style=&quot;&quot;&gt;savedErrno&lt;/span&gt; &lt;span style=&quot;&quot;&gt;==&lt;/span&gt; &lt;span style=&quot;&quot;&gt;EWOULDBLOCK&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="250" x="1905" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-145" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="OS缓冲区已读空，&#xa;数据全部存储在buffer中，中断循环" vertex="1">
+          <mxGeometry height="60" width="120" x="2190" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-147" parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" value="调用&lt;font style=&quot;color: light-dark(rgb(241, 255, 99), rgb(255, 255, 102));&quot;&gt;&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;handleClose&lt;/span&gt;&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;()&lt;/span&gt;&lt;/font&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;处理关闭&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="2068" y="1090" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-150" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-149" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-147">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-149" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="其他错误" vertex="1">
+          <mxGeometry height="60" width="120" x="1905" y="1130" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-160" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-159" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-159" parent="1" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" value="&quot;AITEST&quot;" vertex="1">
+          <mxGeometry height="40" width="200" x="-120" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-161" parent="1" style="whiteSpace=wrap;html=1;" value="客户端发送消息" vertex="1">
+          <mxGeometry height="60" width="120" x="294" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-162" edge="1" parent="1" style="endArrow=none;dashed=1;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="2800" y="1626.6631298828124" as="sourcePoint" />
+            <mxPoint x="2800" y="3.3299999999999983" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-171" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-166" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-170" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-166" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;" value="读取图片并压缩" vertex="1">
+          <mxGeometry height="60" width="120" x="1930" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-181" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-170" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-179">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2200" y="490" />
+              <mxPoint x="2200" y="295" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-170" parent="1" style="html=1;rounded=1;labelBackgroundColor=default;whiteSpace=wrap;" value="AsyncAIEngine::AnalyzeFrameAsync&amp;nbsp;&lt;div&gt;接受帧和压缩数据&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="220" x="1880" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-180" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-176" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-179" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-176" parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" value="创建&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre; color: rgb(78, 201, 176);&quot;&gt;vision&lt;/span&gt;&lt;span style=&quot;color: rgb(204, 204, 204); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;::&lt;/span&gt;&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre; color: rgb(78, 201, 176);&quot;&gt;FrameRequest&lt;/span&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;对象用于跨语言交流&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="160" x="2340" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-183" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-179" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-182" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-179" parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" value="接受服务端的数据" vertex="1">
+          <mxGeometry height="60" width="120" x="2360" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-207" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-182" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-198">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-182" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="创建结构体call，注册tag，由cq线程监视" vertex="1">
+          <mxGeometry height="60" width="120" x="2540" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-193" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-184" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-185">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-184" parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" value="cq线程：专门执行&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre; color: rgb(78, 201, 176);&quot;&gt;AsyncAIEngine&lt;/span&gt;&lt;span style=&quot;color: rgb(204, 204, 204); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;::&lt;/span&gt;&lt;span style=&quot;font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre; color: rgb(220, 220, 170);&quot;&gt;AsyncCompleteRpc()&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="250" x="2480" y="625" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-192" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-185" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-191" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-185" parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" value="&lt;div style=&quot;color: rgb(204, 204, 204); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: rgb(156, 220, 254);&quot;&gt;cq_&lt;/span&gt;.&lt;span style=&quot;color: rgb(220, 220, 170);&quot;&gt;Next&lt;/span&gt;(&lt;span style=&quot;color: rgb(212, 212, 212);&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span style=&quot;color: rgb(156, 220, 254);&quot;&gt;got_tag&lt;/span&gt;, &lt;span style=&quot;color: rgb(212, 212, 212);&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span style=&quot;color: rgb(156, 220, 254);&quot;&gt;ok&lt;/span&gt;)&lt;br/&gt;&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-family: Helvetica; font-size: 12px; white-space: normal;&quot;&gt;等待接受tag(call)&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="70" width="210" x="2500" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-190" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-182" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.478;entryY=-0.03;entryDx=0;entryDy=0;entryPerimeter=0;" target="vVNUTicZXunmT6oap0Y4-185">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-196" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-191" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1570" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-191" parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" value="接受到结果，将处理任务给线程池" vertex="1">
+          <mxGeometry height="60" width="120" x="2240" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-197" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="推理端" vertex="1">
+          <mxGeometry height="60" width="120" x="2970" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-200" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-198" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-199" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-198" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="接受到Protobuf数据" vertex="1">
+          <mxGeometry height="60" width="120" x="2860" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-202" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-199" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-201" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-199" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="展开为图像张量（Tensor）" vertex="1">
+          <mxGeometry height="60" width="120" x="3040" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-204" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-201" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vVNUTicZXunmT6oap0Y4-203" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-201" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="运行推理" vertex="1">
+          <mxGeometry height="60" width="120" x="3040" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-206" edge="1" parent="1" source="vVNUTicZXunmT6oap0Y4-203" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="vVNUTicZXunmT6oap0Y4-185">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vVNUTicZXunmT6oap0Y4-203" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="得到结果并返回" vertex="1">
+          <mxGeometry height="60" width="120" x="2860" y="425" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

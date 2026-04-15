@@ -20,14 +20,16 @@ sequenceDiagram
     Note over TP, Py: 阶段 2: 异步发射与线程释放 (Worker 0 阻塞)
     activate TP
     TP->>TP: Worker A 抢到任务，生成 FrameID
-    TP->>AI: 调用 AnalyzeFrameAsync()
+    TP->>TP: Resize并JPEG压缩
+    TP->>AI: 调用 AnalyzeFrameAsync(), 发起异步 gRPC
     AI--)Py: [gRPC Async] 发射图像数据
     deactivate TP
     Note right of TP: Worker A 发完回到线程池，不等待 AI 运算
 
     Note over AI, Py: 阶段 3: AI 深度学习推理 (跨进程/跨机器)
     activate Py
-    Py->>Py: 模拟 YOLO 运算 (耗时 50ms~几秒)
+    Py->>Py: cv2解码，封装Tensor
+    Py->>Py: YOLO 推理 
     Py--)AI: [gRPC Async] 返回推理结果 (HP/坐标等)
     deactivate Py
 

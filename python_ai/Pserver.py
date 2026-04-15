@@ -15,7 +15,6 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
         self.model = YOLO('yolov8n.pt') 
         print("[AI Engine] Model loaded successfully.")
 
-    # 方法名变为 AnalyzeFrame
     def AnalyzeFrame(self, request, context):
         start_time = time.time()
         print(f"[AI Engine] 收到 Frame: {request.frame_id}, Payload 大小: {len(request.image_data)} bytes")
