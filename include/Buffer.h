@@ -66,7 +66,7 @@ private:
 
     // 扩容和搬移
     void makeSpace(size_t len) {
-        // 如果 尾部可写空间 + 头部死区空间 < 需求长度 + 预留的 8 字节
+        // 尾部可写空间 + 头部死区空间 < 需求长度 + 预留的 8 字节
         if ( writableBytes() + prependableBytes() < len + kCheapPrepend ) {
             // 真实扩容 (向 OS 申请内存)
             buffer_.resize(writerIndex_ + len);
@@ -84,8 +84,7 @@ private:
 };
 
 inline ssize_t Buffer::readFd(int fd, int* savedErrno){
-    // 栈分配空间64KB
-    char extrabuf[65536];
+    
     // 准备两块独立的内存区域 (分散读)
     struct iovec vec[2];
     // 分别为buffer本身的空间和栈空间
@@ -93,6 +92,8 @@ inline ssize_t Buffer::readFd(int fd, int* savedErrno){
     vec[0].iov_base = begin() + writerIndex_;
     vec[0].iov_len = writable;
 
+    // 栈分配空间64KB
+    char extrabuf[65536];
     vec[1].iov_base = extrabuf;
     vec[1].iov_len = sizeof(extrabuf);
 
@@ -109,16 +110,16 @@ inline ssize_t Buffer::readFd(int fd, int* savedErrno){
         // 读取发生错误，将错误码传给外层处理（比如 EAGAIN）
         *savedErrno = errno;
     } else if (static_cast<size_t>(n) <= writable) {
-        // 场景 A：第一块内存（Buffer 内部空间）足够装下所有读到的数据
+        // 第一块内存（Buffer 内部空间）足够装下所有读到的数据
         // 我们只需要把游标向后移动 n 个字节即可
         writerIndex_ += n;
     } else {
-        // 场景 B：读到的数据太多，第一块装满了，溢出到了栈上的 extrabuf 里！
+        // 读到的数据太多，第一块装满了，溢出到了栈上的 extrabuf 里
         // 此时 Buffer 内部的 Writable 空间已经被彻底榨干
         writerIndex_ = buffer_.size();
         
-        // 将溢出在栈上的数据，安全地追加到 Buffer 中。
-        // 这内部会自动触发 makeSpace() 逻辑，进行扩容或者内存搬移
+        // 将溢出在栈上的数据，追加到 Buffer 中
+        // 内部会自动触发 makeSpace() ，进行扩容或者内存搬移
         append(extrabuf, n - writable);
     }
     

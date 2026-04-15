@@ -3,13 +3,12 @@
 #include <vector>
 #include <thread>
 #include <queue>
-#include <functional> // function 包含 std::function 和 std::bind 等工具
+#include <functional> // function 包含 std::function 和 std::bind 等
 #include <mutex>
 #include <condition_variable>
-#include <future> // 包含 std::future 和 std::packaged_task 等工具
+#include <future> // 包含 std::future 和 std::packaged_task 等
 
-class ThreadPool
-{
+class ThreadPool{
 public:
     ThreadPool(size_t threads);
     ~ThreadPool();
@@ -23,8 +22,7 @@ private:
     bool stop;
 };
 
-inline ThreadPool::ThreadPool(size_t threads)
-{
+inline ThreadPool::ThreadPool(size_t threads){
     stop = false;
     // 创建指定数量的工作线程
     for (size_t i = 0; i < threads; i++)
@@ -37,7 +35,7 @@ inline ThreadPool::ThreadPool(size_t threads)
                     std::function<void()> task;
                     // 在临界区内进行任务队列的访问和修改，并在获得任务后执行任务
                     {                                                   // 临界区
-                        std::unique_lock<std::mutex> lock(this->mutex); // 加锁保护任务队列
+                        std::unique_lock<std::mutex> lock(this->mutex); // 声明锁，保护任务队列
                         // 等待任务队列非空或线程池停止
                         this->cv.wait(lock, [this]()
                                       { return this->stop || !this->tasks.empty(); });
