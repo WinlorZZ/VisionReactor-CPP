@@ -57,7 +57,7 @@ void Connection::handleReadEvent() {
     int savedErrno = 0;
     bool read_something = false;
 
-    // ET 模式的铁律：必须用 while 循环读到 EAGAIN 为止！
+    // ET 模式：必须用 while 循环读到 EAGAIN 为止
     while (true) {
         ssize_t n = inputBuffer->readFd(sock->fd(), &savedErrno);
         
@@ -67,7 +67,7 @@ void Connection::handleReadEvent() {
         } else if (n == -1 && savedErrno == EINTR) {// 被系统中断打断，继续读
             continue; 
         } else if (n == -1 && (savedErrno == EAGAIN || savedErrno == EWOULDBLOCK)) {
-            break; // 内核缓冲区写满，安全退出循环
+            break; // 
         } else if (n == 0) {
             // 对端正常关闭 (FIN包)
             std::cout << "[Connection] 收到 FIN，准备断开..." << std::endl;
@@ -163,7 +163,7 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
     }
     /* 大数据写入测试 */
     else if (message.find("TEST_FAT") != std::string::npos) {
-        std::cout << "[Server] 接收到大包指令，生成 5MB 垃圾数据进行压测..." << std::endl;
+        std::cout << "[Server] 接收到大包指令，生成 5MB 数据进行压测..." << std::endl;
         
         // 生成 5,242,880 字节的 'A'
         std::string fat_response(5 * 1024 * 1024, 'A'); 
@@ -177,18 +177,18 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
     else if(message.find("AITEST") != std::string::npos){
         static std::atomic<uint64_t> global_frame_id{1000}; 
         uint64_t current_frame_id = global_frame_id++;
-        std::cout << "[业务层] 拦截到玩家指令，开始装填视觉弹药 -> FrameID: " << current_frame_id << "\n";
+        std::cout << "[业务层] 获取到指令，（读取本地图片）当前 FrameID: " << current_frame_id << "\n";
 
-        // 1. 读取图片(请确保 build 目录下真的放了 test_frame.jpg)
+        // 1. 读取图片(暂时在 build 目录下放 test_frame.jpg)
         // 建议写绝对路径，防止工作目录不对。比如："/home/equinn/Network/build/test_frame.jpg"
         cv::Mat img = cv::imread("test_frame.jpg"); 
         
         if (img.empty()) {
-            std::cerr << "[-] 致命错误：OpenCV 读取图片失败！是不是忘放 test_frame.jpg 了？\n";
-            return; // 读不到图直接拦截，绝不发空包！
+            std::cerr << "[-] 致命错误：OpenCV 读取图片失败！？\n";
+            return; // 读不到图直接返回
         }
 
-        // 2. 图像压缩 (这步极其重要，把几MB的图压到几十KB，节省局域网带宽)
+        // 2. 图像压缩 
         cv::Mat resized_img;
         cv::resize(img, resized_img, cv::Size(640, 640));
         std::vector<uchar> buffer;
@@ -196,7 +196,7 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
         
         std::string image_bytes(buffer.begin(), buffer.end());
 
-        // 【日志打印】：打印真实装填的字节数
+        // 日志：打印真实装填的字节数
         std::cout << "[Worker] 图片准备发送的字节数: " << image_bytes.size() << " bytes\n";
 
         // 3. 发送图片数据
@@ -250,13 +250,13 @@ void Connection::handleWriteEvent(){
             // 发送成功 n 字节，向后移动读游标readerIndex_
             outputBuffer->retrieve(n);
             std::cout << "[HandleWrite] 成功发送 " << n << " 字节，剩余积压 " << outputBuffer->readableBytes() << std::endl;
-            // 【解除 CPU 炸弹】如果发完了，立刻注销 EPOLLOUT
+            // 如果发完了，立刻注销 EPOLLOUT，防止死循环
             if (outputBuffer->readableBytes() == 0) {
                 std::cout << "[HandleWrite] 数据发送完毕，注销 EPOLLOUT" << std::endl;
                 channel->disableWriting(); 
                 //如果此时连接准备结束但尚未结束，调用回调函数通知释放connection
                 if(state_ == kDisconnecting ){
-                    std::cout << "[Connection] 残留数据发送完毕，连接安详离世。" << std::endl;
+                    std::cout << "[Connection] 残留数据发送完毕，释放Connection" << std::endl;
                     if (deleteConnectionCallback) deleteConnectionCallback(sock);
                 }
             }
