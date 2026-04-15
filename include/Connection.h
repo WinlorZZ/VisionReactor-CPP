@@ -2,6 +2,7 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <arpa/inet.h>
 
 class EventLoop;
 class Socket;
