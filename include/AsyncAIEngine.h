@@ -3,6 +3,9 @@
 #include <string>
 #include "ThreadPool.h"
 #include <thread>
+#include <unordered_map>
+#include <mutex>         
+#include <chrono>     
 
 // 引入 gRPC 核心库和生成的契约头文件
 #include <grpcpp/grpcpp.h>
@@ -38,11 +41,16 @@ private:
         Status status;  // 准备用来装成功/失败状态的变量
         // 运单号追踪器
         std::unique_ptr<ClientAsyncResponseReader<FrameResponse>> response_reader;
+        // 记录任务被创建的时间，用于超时清理
+        uint64_t frame_id;
+        std::chrono::time_point<std::chrono::steady_clock> create_time; // 出生时间戳
     };
 
     std::unique_ptr<VisionAI::Stub> stub_;// 存根
     CompletionQueue cq_; // 信箱
     std::thread cq_thread;// 运行cq的线程
     ThreadPool* threadpool;// 线程池指针
-
+    // 管理tag
+    std::mutex mu_;// 保护 active_calls_
+    std::unordered_map<void*, std::shared_ptr<AsyncClientCall>> active_calls_;
 };
