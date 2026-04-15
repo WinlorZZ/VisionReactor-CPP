@@ -71,7 +71,7 @@ void Channel::handleEventWithGuard(){
     }
     if( revents & EPOLLOUT ) {
         // 有写事件发生
-        // // EPOLLOUT: 缓冲区可写 (将来做发送缓冲区时会用到)
+        // // EPOLLOUT: 缓冲区可写
         if (writeCallback) {
             writeCallback(); // 执行写事件回调
         }
