@@ -2,6 +2,7 @@
 #include <string>
 #include <sys/uio.h> // readv 的核心头文件
 #include <errno.h>   // 错误码
+#include <arpa/inet.h> // ntohl , htonl 
 
 class Buffer{
 public:
@@ -25,10 +26,28 @@ public:
     const char* beginWrite() const { return begin() + writerIndex_; }// 只读的版本
 
     //功能区
+
+    // 协议解析
+    int32_t peekInt32() const{
+        if (readableBytes() >= 4) {
+            int32_t be32 = 0;
+            ::memcpy(&be32, peek(), sizeof(be32));
+            return ntohl(be32);
+        }
+        return 0;
+    }
+
+    std::string retrieveAsString(size_t len) {
+    if (len > readableBytes()) len = readableBytes(); 
+    std::string result(peek(), len); 
+    retrieve(len); //（代码复用）
+    return result; 
+}
     //写入数据
     void append(const char* data, size_t len){
         ensureWritableBytes(len);// 确保写入时有足够空间
         std::copy(data, data + len,beginWrite() );//参数： 首元素地址，末尾元素地址+1，复制位置的起点地址
+        writerIndex_ += len;
     }
     //写入数据后write指针移动
     void hasWritten(size_t len) { writerIndex_ += len; }
@@ -46,7 +65,24 @@ public:
     }
     // 结合ET模式的分散读
     ssize_t readFd(int fd, int* savedErrno) ;
-    
+
+    // 发送端
+    void prepend(const void* data, size_t len){
+        // 确保前面的预留空间还够用 (通常初始化时预留了 8 字节)
+        if (readerIndex_ < len) {
+            return; 
+        }
+        // 读游标倒退
+        readerIndex_ -= len;
+        const char* d = static_cast<const char*>(data);
+        // 把数据拷贝到倒退后的位置
+        std::copy(d, d + len, begin() + readerIndex_);
+    }
+
+    void prependInt32(int32_t x){//写入 4 字节整型的便捷函数
+        int32_t be32 = htonl(x); // 主机字节序转网络字节序
+        prepend(&be32, sizeof(be32));
+    }
 private:
     std::vector<char> buffer_;// 存储数据的容器，包含头部预留
     // 获取容器位置
