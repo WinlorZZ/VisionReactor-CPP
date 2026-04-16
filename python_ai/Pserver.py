@@ -1,3 +1,38 @@
+import os
+import sys
+from grpc_tools import protoc
+
+# ==========================================
+# 1. 契约文件 JIT 动态编译阶段 (Zero-Setup)
+# ==========================================
+# 获取当前 Pserver.py 所在目录 (python_ai)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 获取项目根目录 (跨出 python_ai 文件夹)
+project_root = os.path.dirname(current_dir)
+# 定位到对面的 proto 文件夹
+proto_dir = os.path.join(project_root, "proto")
+proto_file = os.path.join(proto_dir, "game_ai.proto")
+
+print(f"[Proto JIT] 检查契约文件: {proto_file}")
+if os.path.exists(proto_file):
+    print("[Proto JIT] 正在动态编译 gRPC 契约...")
+    # 通过 Python 代码直接调用 protoc 编译器
+    protoc.main((
+        '',
+        f'-I{proto_dir}',
+        f'--python_out={current_dir}',
+        f'--grpc_python_out={current_dir}',
+        proto_file,
+    ))
+    print("[Proto JIT] 契约编译完毕！")
+else:
+    print("[-] 致命错误：找不到 game_ai.proto 文件！")
+    sys.exit(1)
+
+# ==========================================
+# 2. 正常导入阶段 (此时 _pb2 文件必定已最新生成)
+# ==========================================
+
 import time
 import grpc
 import cv2
