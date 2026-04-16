@@ -148,9 +148,15 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
             // handleClose();
             break;
         }
+        if (!current_frame_ctx_) {
+        current_frame_ctx_ = std::make_shared<FrameContext>();
+        std::cout << "[Trace] 新帧开始接收 -> TraceID: " << current_frame_ctx_->trace_id << std::endl;
+    }
+
         if (inputBuffer->readableBytes() >= 4 + body_len) {
             inputBuffer->retrieve(4);// 丢弃包头
             std::string message = inputBuffer->retrieveAsString(body_len);
+            current_frame_ctx_->t_parsed = LatencyProfiler::now();
             std::cout << "[Debug] 数据已齐，准备调用 AI 引擎..." << std::endl;
             
             /* 处理业务 (Echo) */ 
@@ -187,9 +193,9 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
             }
             /* AI链路测试 */
             else {
-                static std::atomic<uint64_t> global_frame_id{1000}; 
-                uint64_t current_frame_id = global_frame_id++;
-                
+                // static std::atomic<uint64_t> global_frame_id{1000}; 
+                // uint64_t current_frame_id = global_frame_id++;
+                uint64_t current_frame_id = current_frame_ctx_->trace_id;
                 // std::cout << "[业务层] 获取到指令，（读取本地图片）当前 FrameID: " << current_frame_id << "\n";
                 // cv::Mat img = cv::imread("test_frame.jpg"); 
                 // if (img.empty()) {
@@ -210,7 +216,8 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
                 std::cout << "[协议层] 成功切包！提取到完整图像载荷，大小: " 
                             << message.size() << " bytes -> FrameID: " << current_frame_id << "\n";
                 // 3. 发送图片数据
-                engine_ptr->AnalyzeFrameAsync(current_frame_id, std::move(message));
+                engine_ptr->AnalyzeFrameAsync(current_frame_ctx_, std::move(message));
+                current_frame_ctx_.reset();
             }
         }else{// 有包头但数据未传完，退出循环并等待下一次 Epoll 触发可读事件
             std::cout << "[Debug] 数据未齐，当前缓冲区: " << inputBuffer->readableBytes() 

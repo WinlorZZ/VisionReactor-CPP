@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <arpa/inet.h>
+#include "LatencyProfiler.h"
 
 class EventLoop;
 class Socket;
@@ -60,4 +61,6 @@ private:
     // std::string readBuffer;
     Buffer* inputBuffer;
     Buffer* outputBuffer;
+    // 时间信息上下文
+    FrameContextPtr current_frame_ctx_;
 };
