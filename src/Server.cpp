@@ -10,7 +10,13 @@
 #include <grpcpp/grpcpp.h>
 #include "game_ai.grpc.pb.h"
 
-Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(nullptr) {
+Server::Server(EventLoop *loop) 
+    // : Server(loop, "127.0.0.1:50051") { 
+    : Server(loop, "172.30.131.156:50051") { 
+    // 这里什么都不用写，逻辑全在下面
+}
+
+Server::Server(EventLoop *loop , const std::string& ai_target ) : loop(loop), acceptor(nullptr), threadPool(nullptr) {
     // 初始化线程池和监听器
     acceptor = new Acceptor(loop);
     threadPool = new ThreadPool(4); 
@@ -18,7 +24,8 @@ Server::Server(EventLoop *loop) : loop(loop), acceptor(nullptr), threadPool(null
     std::function<void(Socket*)> cb = std::bind(&Server::handleNewConnection, this, std::placeholders::_1);
     acceptor->setNewConnectionCallback(cb);
     // 设置连接的对端IP和本地端口
-    auto gchannel = grpc::CreateChannel("172.30.230.131:50051", grpc::InsecureChannelCredentials());
+    auto gchannel = grpc::CreateChannel(ai_target, grpc::InsecureChannelCredentials());
+    // auto gchannel = grpc::CreateChannel("172.30.131.156:50051", grpc::InsecureChannelCredentials());
     aiengine = std::make_unique<AsyncAIEngine>(gchannel, threadPool);
 }
 

@@ -16,6 +16,7 @@ class AsyncAIEngine;
 class Server {
 public:
     Server(EventLoop *loop);
+    Server(EventLoop *loop, const std::string& ai_target);
     ~Server();
 
     void handleNewConnection(Socket *sock);
