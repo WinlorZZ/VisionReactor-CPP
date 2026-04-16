@@ -47,7 +47,8 @@ message FrameResponse {
   
   repeated BBox boxes = 2;// 识别到的目标框
   
-  int32 inference_latency_ms = 3; // Python 端的纯推理耗时监控
+  // int32 inference_latency_ms = 3; // Python 端的纯推理耗时监控
+  int64 inference_latency_us = 3; // Python 端的纯推理耗时监控 (微秒)
 }
 
 // ---------------------------------------------------------
