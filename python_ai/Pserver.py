@@ -8,7 +8,6 @@ from ultralytics import YOLO
 import game_ai_pb2
 import game_ai_pb2_grpc
 
-# 类名为 VisionAIServicer
 class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
     def __init__(self):
         print("[AI Engine] Loading YOLO model...")
@@ -16,7 +15,9 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
         print("[AI Engine] Model loaded successfully.")
 
     def AnalyzeFrame(self, request, context):
-        start_time = time.time()
+        # 【T3 探针起点】：使用高精度单调时钟
+        t3_start = time.perf_counter()
+        
         print(f"[AI Engine] 收到 Frame: {request.frame_id}, Payload 大小: {len(request.image_data)} bytes")
         
         nparr = np.frombuffer(request.image_data, np.uint8)
@@ -27,6 +28,7 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
             context.set_details("Failed to decode image bytes.")
             return game_ai_pb2.FrameResponse()
 
+        # OpenCV 解码与 YOLO 推理
         results = self.model(img_np, imgsz=640, verbose=False)
 
         response = game_ai_pb2.FrameResponse()
@@ -47,16 +49,22 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
                 bbox_msg.confidence = conf
                 bbox_msg.class_name = self.model.names[cls_id]
 
-        cost_ms = int((time.time() - start_time) * 1000)
-        # 字段名为 inference_latency_ms
-        response.inference_latency_ms = cost_ms
+        # 【T3 探针终点】
+        t3_end = time.perf_counter()
         
-        print(f"Frame {request.frame_id} processed in {cost_ms}ms. Found {len(response.boxes)} objects.")
+        # 计算微秒 (us)
+        cost_us = int((t3_end - t3_start) * 1_000_000)
+        
+        # 【对齐契约】：字段名已升级为 us
+        response.inference_latency_us = cost_us
+        
+        # 日志依然可以打印毫秒方便人类阅读
+        print(f"Frame {request.frame_id} processed in {cost_us / 1000.0:.2f}ms. Found {len(response.boxes)} objects.")
+        
         return response
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
-    # 注册函数名更新
     game_ai_pb2_grpc.add_VisionAIServicer_to_server(VisionAIServicer(), server)
     
     server.add_insecure_port('[::]:50051')
