@@ -38,15 +38,27 @@ import grpc
 import cv2
 import numpy as np
 from concurrent import futures
+import torch
 from ultralytics import YOLO
-
 import game_ai_pb2
 import game_ai_pb2_grpc
 
 class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
     def __init__(self):
+        print("===================================")
+        print(f"[GPU Check] PyTorch CUDA 可用状态: {torch.cuda.is_available()}")
+        if torch.cuda.is_available():
+            print(f"[GPU Check] 识别到显卡: {torch.cuda.get_device_name(0)}")
+        else:
+            print("[GPU Check] 警告：未能识别到 CUDA，即将使用 CPU 进行推理！")
+        print("===================================")
+
         print("[AI Engine] Loading YOLO model...")
-        self.model = YOLO('yolov8n.pt') 
+        # 强制指定在第一块 GPU (cuda:0) 上加载模型
+        # 如果你想保险，可以写 self.model = YOLO('yolov8n.pt') 
+        # YOLOv8 默认会自动找 GPU，但我们可以强行提醒它
+        self.model = YOLO('yolov8n.pt')
+        self.model.to('cuda' if torch.cuda.is_available() else 'cpu')
         print("[AI Engine] Model loaded successfully.")
 
     def AnalyzeFrame(self, request, context):
