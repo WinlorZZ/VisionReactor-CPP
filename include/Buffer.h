@@ -88,7 +88,7 @@ private:
     // 获取容器位置
     // 给非 const 函数用的（返回可修改的指针）
     char* begin() { return &*buffer_.begin(); }
-    // // 给 const 函数用的（返回只读指针）
+    // 给 const 函数用的（返回只读指针）
     const char* begin() const { return &*buffer_.begin(); }
     void ensureWritableBytes(size_t len) {// 检测写入数据时是否需要扩容
         if (writableBytes() < len) {
@@ -147,7 +147,7 @@ inline ssize_t Buffer::readFd(int fd, int* savedErrno){
         *savedErrno = errno;
     } else if (static_cast<size_t>(n) <= writable) {
         // 第一块内存（Buffer 内部空间）足够装下所有读到的数据
-        // 我们只需要把游标向后移动 n 个字节即可
+        // 只需要把游标向后移动 n 个字节即可
         writerIndex_ += n;
     } else {
         // 读到的数据太多，第一块装满了，溢出到了栈上的 extrabuf 里
