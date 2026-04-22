@@ -53,4 +53,5 @@ private:
     // 管理tag
     std::mutex mu_;// 保护 active_calls_
     std::unordered_map<void*, std::shared_ptr<AsyncClientCall>> active_calls_;
+    // 使用uormap存call，这样share_ptr的计数始终有1，使得call不会被释放
 };

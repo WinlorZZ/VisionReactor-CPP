@@ -21,9 +21,9 @@ public:
     size_t prependableBytes() const { return readerIndex_; }// 死区末尾位置（读指针位置）
 
     //获取数据区指针，使用起始地址加相对位置计算
-    const char* peek() const { return begin() + readerIndex_; }
-    char* beginWrite()  { return begin() + writerIndex_; }// 可修改的版本
-    const char* beginWrite() const { return begin() + writerIndex_; }// 只读的版本
+    const char* peek() const { return begin() + readerIndex_; }// 读起点指针
+    char* beginWrite()  { return begin() + writerIndex_; }// 写起点指针：可修改的版本
+    const char* beginWrite() const { return begin() + writerIndex_; }// 写起点指针：只读的版本
 
     //功能区
 
@@ -38,10 +38,10 @@ public:
     }
 
     std::string retrieveAsString(size_t len) {
-    if (len > readableBytes()) len = readableBytes(); 
-    std::string result(peek(), len); 
-    retrieve(len); //（代码复用）
-    return result; 
+        if (len > readableBytes()) len = readableBytes(); 
+        std::string result(peek(), len); 
+        retrieve(len); //（代码复用）
+        return result; 
 }
     //写入数据
     void append(const char* data, size_t len){
