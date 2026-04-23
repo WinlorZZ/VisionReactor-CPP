@@ -8,6 +8,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall") # 开启调试信息和警告
 
 # 2.告诉编译器去哪里找 .h 头文件
 include_directories(include)
+# 自动下载并集成GTest
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/heads/main.zip
+)
+FetchContent_MakeAvailable(googletest)
 
 # 3.自动查找 src 目录下的所有 .cpp 文件
 file(GLOB SRC_FILES "src/*.cpp")
@@ -43,15 +50,28 @@ add_custom_command(
          "${HW_PROTO_FILE}"
     DEPENDS "${HW_PROTO_FILE}"
 )
-# 5. 生成可执行文件
-# 注意：要把 main.cpp (在根目录) 和 SRC_FILES (在 src 目录) 一起编译
-add_executable(server main.cpp ${SRC_FILES} ${HW_PROTO_SRCS} ${HW_GRPC_SRCS})
 
-# 6. 链接所有底层库
-# 如果不加这一行，ThreadPool 里的 std::thread 会报错 "undefined reference to pthread_create"
-target_link_libraries(server
+# 5. 核心逻辑静态库
+# 把除了 main.cpp 之外的所有底层逻辑，打包成一个静态库 server_core
+add_library(server_core ${SRC_FILES} ${HW_PROTO_SRCS} ${HW_GRPC_SRCS})
+
+# 把第三方依赖直接挂载到 server_core 上（使用 PUBLIC 属性，谁链接了它，谁就拥有这些依赖）
+target_link_libraries(server_core
+    PUBLIC
     Threads::Threads          # ThreadPool 需要的 pthread
     gRPC::grpc++              # gRPC 核心库
     protobuf::libprotobuf     # Protobuf 核心库
-    ${OpenCV_LIBS}
+    ${OpenCV_LIBS}            # OpenCV 库
 )
+
+# 6. 生成主程序 (线上运行入口)
+add_executable(server main.cpp)
+# 主程序只需要链接 server_core 即可
+target_link_libraries(server server_core)
+
+# 7. 生成自动化测试程序 (测试入口)
+add_executable(buffer_test tests/buffer_test.cpp)
+add_executable(ThreadPool_test tests/thread_test.cpp)
+# 测试程序同样链接 server_core，并额外链接 GTest 的 main 函数入口
+target_link_libraries(buffer_test server_core GTest::gtest_main)
+target_link_libraries(ThreadPool_test server_core GTest::gtest_main)

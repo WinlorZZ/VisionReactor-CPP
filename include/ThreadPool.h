@@ -14,10 +14,19 @@ public:
     ~ThreadPool();
     template<class F, class... Args>
     auto add(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+
+    // 提供给测试使用的接口
+    size_t getWorkersCount() const {
+        return workers.size();
+    }
+    size_t getPendingTaskCount() const{
+        std::unique_lock<std::mutex> lock(this->mutex);
+        return tasks.size();
+    }
 private:
     std::vector<std::thread> workers;
     std::queue<std::function<void()>> tasks;
-    std::mutex mutex;
+    mutable std::mutex mutex;
     std::condition_variable cv;
     bool stop;
 };
