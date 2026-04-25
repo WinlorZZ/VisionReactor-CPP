@@ -4,7 +4,7 @@
 #include <memory>
 #include <arpa/inet.h>
 #include "LatencyProfiler.h"
-#include <gtest/gtest_prod.h>
+// #include <gtest/gtest_prod.h>
 
 class EventLoop;
 class Socket;
@@ -51,8 +51,9 @@ public:
 
 private:
     // 授权特定的测试套件访问私有成员
-    FRIEND_TEST(ConnectionTest, StickyPacketTest);
-    FRIEND_TEST(ConnectionTest, FatPacketHandling);
+    // FRIEND_TEST(ConnectionTest, StickyPacketTest);
+    // FRIEND_TEST(ConnectionTest, FatPacketHandling);
+    // FRIEND_TEST(ConnectionTest, LifecycleSafety);
 
     StateE state_; // 当前连接状态
 
