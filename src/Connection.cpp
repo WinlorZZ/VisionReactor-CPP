@@ -13,7 +13,7 @@
 #include <chrono> // 对应 std::chrono
 #include <atomic> // std::atomic
 
-Connection::Connection(EventLoop *loop, Socket *sock) : loop(loop), sock(sock), state_(kConnected) {
+Connection::Connection(EventLoop *loop, Socket *sock) : state_(kConnected), loop(loop), sock(sock) {
     //初始化channel
     channel = new Channel(loop, sock->fd());
     //初始化Buffer
@@ -55,14 +55,14 @@ void Connection::setOnMessageCallback(std::function<void( std::shared_ptr<Connec
 // 将该函数设置给Connection管理的对应的channel，channel在被调用handleEvent时会使用该函数
 void Connection::handleReadEvent() {
     int savedErrno = 0;
-    bool read_something = false;
+    // bool read_something = false;
 
     // ET 模式：必须用 while 循环读到 EAGAIN 为止
     while (true) {
         ssize_t n = inputBuffer->readFd(sock->fd(), &savedErrno);
         
         if (n > 0) {// 读到数据
-            read_something = true; 
+            // read_something = true; 
             continue;// 继续下一次调用readFd，调用的时候已经存进inputBuffer了
         } else if (n == -1 && savedErrno == EINTR) {// 被系统中断打断，继续读
             continue; 
@@ -141,7 +141,7 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
     
     while (inputBuffer->readableBytes() >= 4) {
         // 包头解析
-        int32_t body_len = inputBuffer->peekInt32();
+        uint32_t body_len = inputBuffer->peekInt32();
         std::cout << "[Debug] 收到 Header，解析出的 Body 长度为: " << body_len << std::endl;
         if (body_len <= 0 || body_len > 10 * 1024 * 1024) {
             // std::cerr << "[-] 致命错误：非法的数据包长度 " << body_len << "，强制断开连接！\n";
