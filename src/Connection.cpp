@@ -145,80 +145,29 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
         std::cout << "[Debug] 收到 Header，解析出的 Body 长度为: " << body_len << std::endl;
         if (body_len <= 0 || body_len > 10 * 1024 * 1024) {
             // std::cerr << "[-] 致命错误：非法的数据包长度 " << body_len << "，强制断开连接！\n";
-            // handleClose();
+            handleClose();
             break;
         }
         if (!current_frame_ctx_) {
-        current_frame_ctx_ = std::make_shared<FrameContext>();
-        std::cout << "[Trace] 新帧开始接收 -> TraceID: " << current_frame_ctx_->trace_id << std::endl;
-    }
+            current_frame_ctx_ = std::make_shared<FrameContext>();
+            std::cout << "[Trace] 新帧开始接收 -> TraceID: " << current_frame_ctx_->trace_id << std::endl;
+        }
 
         if (inputBuffer->readableBytes() >= 4 + body_len) {
             inputBuffer->retrieve(4);// 丢弃包头
             std::string message = inputBuffer->retrieveAsString(body_len);
+            // 计时器：T1结束
             current_frame_ctx_->t_parsed = LatencyProfiler::now();
             std::cout << "[Debug] 数据已齐，准备调用 AI 引擎..." << std::endl;
             
-            /* 处理业务 (Echo) */ 
-
-            /* 崩溃测试 */
-            if (message.find("TEST_CLASH") != std::string::npos) {
-                // 获取当前引用计数（此时 Server 的 map 还没删，所以至少是 2）
-                std::cout << "[Worker] 发现碰撞测试请求！当前引用计数: " 
-                        << shared_from_this().use_count() << "，准备进入 5 秒深度睡眠..." << std::endl;
-
-                // 睡 5 秒，有充足的时间去按 Ctrl+C
-                std::this_thread::sleep_for(std::chrono::seconds(5));
-
-                std::cout << "[Worker] 醒来了！现在的引用计数是: " 
-                        << shared_from_this().use_count() << std::endl;
-
-                if (shared_from_this().use_count() == 1) {
-                    std::cout << "[Worker] 证实：Server 已删除连接，我是这块内存最后的守护者！" << std::endl;
-                }
-
-                this->send("Can you hear me now?\n");
-                return;
-            }
-            /* 大数据写入测试 */
-            else if (message.find("TEST_FAT") != std::string::npos) {
-                std::cout << "[Server] 接收到大包指令，生成 5MB 数据进行压测..." << std::endl;
-                
-                // 生成 5,242,880 字节的 'A'
-                std::string fat_response(5 * 1024 * 1024, 'A'); 
-                fat_response += "\n--- GIGANTIC DATA END ---\n";
-            
-                std::string respond =fat_response;//测试用例
-                this->send(respond);
-            }
-            /* AI链路测试 */
-            else {
-                // static std::atomic<uint64_t> global_frame_id{1000}; 
-                // uint64_t current_frame_id = global_frame_id++;
-                uint64_t current_frame_id = current_frame_ctx_->trace_id;
-                // std::cout << "[业务层] 获取到指令，（读取本地图片）当前 FrameID: " << current_frame_id << "\n";
-                // cv::Mat img = cv::imread("test_frame.jpg"); 
-                // if (img.empty()) {
-                //     std::cerr << "[-] 致命错误：OpenCV 读取图片失败！？\n";
-                //     return; // 读不到图直接返回
-                // }
-                // 2. 图像压缩 
-                // cv::Mat resized_img;
-                // cv::resize(img, resized_img, cv::Size(640, 640));
-                // std::vector<uchar> buffer;
-                // cv::imencode(".jpg", resized_img, buffer);
-                
-                // std::string image_bytes(buffer.begin(), buffer.end());
-
-                // // 日志：打印真实装填的字节数
-                // std::cout << "[Worker] 图片准备发送的字节数: " << image_bytes.size() << " bytes\n";
-                
-                std::cout << "[协议层] 成功切包！提取到完整图像载荷，大小: " 
-                            << message.size() << " bytes -> FrameID: " << current_frame_id << "\n";
-                // 3. 发送图片数据
-                engine_ptr->AnalyzeFrameAsync(current_frame_ctx_, std::move(message));
-                current_frame_ctx_.reset();
-            }
+            /* 处理业务 */ 
+            uint64_t current_frame_id = current_frame_ctx_->trace_id;
+            std::cout << "[协议层] 成功切包！提取到完整图像载荷，大小: " 
+                        << message.size() << " bytes -> FrameID: " << current_frame_id << "\n";
+            // 发送图片数据
+            engine_ptr->AnalyzeFrameAsync(current_frame_ctx_, std::move(message));
+            // 发送结束后重置上下文
+            current_frame_ctx_.reset();
         }else{// 有包头但数据未传完，退出循环并等待下一次 Epoll 触发可读事件
             std::cout << "[Debug] 数据未齐，当前缓冲区: " << inputBuffer->readableBytes() 
                       << " 字节，等待下一波..." << std::endl;

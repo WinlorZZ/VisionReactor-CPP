@@ -25,9 +25,9 @@ using vision::FrameResponse;
 class AsyncAIEngine{
 public:
     AsyncAIEngine(std::shared_ptr<grpc::Channel> gchannel,ThreadPool* pool);
-    ~AsyncAIEngine();
+    virtual AsyncAIEngine::~AsyncAIEngine() = default;
     // 1. 发起异步请求 (在worker线程中运行)
-    void AnalyzeFrameAsync(FrameContextPtr ctx,std::string&& image_date);
+    virtual void AnalyzeFrameAsync(FrameContextPtr ctx,std::string&& image_date);
     void PrintLatencyLog(const FrameContextPtr& ctx);
     
 private:
