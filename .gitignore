@@ -41,7 +41,7 @@ venv/
 # 不提交真实的 mysql.conf
 mysql.conf
 answer.md
-
+RecordAI.md
 # 6. 忽略系统生成文件
 .DS_Store
 *:Zone.Identifier
