@@ -25,6 +25,7 @@
 
 ## 核心函数调用解析
 1. `socket()`：向内核申请创建一个新的套接字资源
+    
     - 套接字资源是什么？  
         客户端与服务器之间通信时，要进行连接；将连接这一行为抽象为一个实体，对于任一方（客户端或服务端），这个连接默认绑定的是自己，所以他需要知道这个连接的对方是谁，如何连接
     ```c++
@@ -36,6 +37,7 @@
         - 0: 使用默认协议（TCP）
     - 使用int类型的listen_fd变量来存储返回的文件描述符
 1. `setsockopt()`：用于设置套接字选项
+    
     ```c++
     int opt = 1;
     setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -47,7 +49,7 @@
     - `SO_REUSEADDR`：必加选项，允许服务器重启后，立即使用之前被占用的端口（否则要等 2 分钟 TIME_WAIT）
     - 使用选项值的引用和大小是因为 `setsockopt()` 函数需要知道选项值存储的位置和大小，以便正确地读取和应用该选项，见原始socket.h对setsockopt的定义
     - void 指针*：这里传 &opt 是因为该函数通用性极强，可以传 int 也可以传结构体，C 语言通过 void* 实现类似“泛型”的效果
-
+    
 1. `bind()`：给 socket 绑定“门牌号”（IP + 端口）
    
     ```c++
@@ -69,10 +71,11 @@
 
 1. `epoll_create1(0)`
     - epoll_create1是一个系统调用，用于创建一个新的epoll实例，并返回一个文件描述符，参数0表示不设置特殊标志
-    - epoll是监听过程的抽象，epoll是监听器，他有监听的对象，该对象用fd标识（可以监听其他监听器）和数量，有通知的对象，有行为模式，有标识牌epfd；  
-    更多内容见[I/O多路复用](https://xiaolincoding.com/os/8_network_system/selete_poll_epoll.html#epoll)
+    - epoll是监听过程的抽象，epoll是监听器，他有监听的对象，该对象用fd标识（可以监听其他监听器）和数量，有通知的对象，有行为模式，有标识牌epfd
+    - 更多内容见[I/O多路复用](https://xiaolincoding.com/os/8_network_system/selete_poll_epoll.html#epoll)
 
 1. `fcntl()` ：设置非阻塞
+    
     ```c++
     int flags = fcntl(fd, F_GETFL, 0);          // 1. 获取原有属性
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);     // 2. 加上非阻塞标签
@@ -86,6 +89,7 @@
     - 位运算：使用 | (OR) 操作是为了保留文件原本的属性（如读写权限），只追加 O_NONBLOCK（非阻塞） 属性
         - 意义：Epoll ET 模式下，如果 socket 是阻塞的，一个读操作没数据就会卡死整个线程，所以必须设为非阻塞
 1. `epoll_ctl()` : 将指定的socket对象添加到对应的epoll实例中，以便监听
+    
     ```c++
     int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
     ```
@@ -261,14 +265,13 @@ while (true) {
 ## P3阶段记录
 
 1. 各级封装的关系图
-   - 总服务的持有关系![Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368576586-3](./Record.assets/Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368576586-3.png)
-   - `Acceptor` 的回调链![Gemini_Generated_Image_t4gw1xt4gw1xt4gw](./Record.assets/Gemini_Generated_Image_t4gw1xt4gw1xt4gw.png)
-   - `Connection` 的回调链![Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368711102-6](./Record.assets/Gemini_Generated_Image_t4gw1xt4gw1xt4gw-1770368711102-6.png)
-
+   - 见Class Diagram.md
+   
 1. 语法
 - [c++11语法：`auto`的使用](https://zhuanlan.zhihu.com/p/670102303)  
-    - 对于某些较长或较奇怪的数据类型，可交给编译器自行推导，这样使代码更简洁  
+    - 对于某些较长或较奇怪的数据类型，可交给编译器自行推导，这样使代码更简洁 
       示例代码
+      
         ```c++
         int main()
         {
@@ -328,7 +331,6 @@ while (true) {
     - 位运算用于检查二进制位
     - `|` = 位或（多个位合并）
     - `&` = 位与（检查是否包含某位）
-      
     
     **为什么使用位运算？**
         标志位通常用二进制表示多个开关：
@@ -345,62 +347,59 @@ while (true) {
     ```
     用位运算可以高效地检查多个标志位，是系统编程的常用做法
 
+这份笔记的核心知识点抓得非常准，全是非阻塞网络编程和 Reactor 模型里最容易踩坑的底层细节！
 
-### 问题释义
+我帮你把逻辑重新梳理了一遍，去掉了杂乱的描述，采用了结构化的排版。这份整理后的版本非常适合你打印下来或者放在博客里作为面试复习的“速查手册”：
 
-#### Q1: 关于 `read()`和`write()` 函数返回值的含义
+------
 
-`read()`返回值：特别是在非阻塞（Non-blocking）模式下，需要严格区分“对端关闭”和“暂时没数据”
+## 核心知识点：非阻塞网络编程中的 I/O 返回值与 errno 详解
 
-在 TCP 协议和 POSIX 标准中定义：
+### 1. `read()` 函数返回值解析
 
-1. **`read()返回 > 0`**：成功读取到 N 个字节的数据。
-2. **`read()返回 == 0`**：**EOF (End of File)**。在 TCP 层面，这表示对端发送了 `FIN` 包，明确告知“我不会再给你发任何数据了”。这是一个不可逆的状态，因此我们认定为 **“断开连接”**。
-3. **`read()返回 == -1`**：出错了。此时需要检查全局变量 `errno`
+在非阻塞（Non-blocking）模式下，必须严格区分“对端真实关闭”和“暂时没有数据”。
 
-**“读完数据” (缓冲区空) 的表现：**
-在非阻塞模式（特别是 ET 边缘触发模式）下，当内核读取缓冲区的数据全部读完后，`read()` **不会返回 0，而是返回 -1**，并且操作系统会将 `errno` 设置为 **`EAGAIN`** (或 `EWOULDBLOCK`)。这代表“无数据但连接保持”
+- **返回值 > 0**：成功从内核接收缓冲区读取到 N 个字节的数据。
+- **返回值 == 0**：遇到 EOF (End of File)。在 TCP 层面表示接收到了对端发来的 FIN 包，对端明确表示“不再发送数据”。这是一个不可逆状态，应直接认定为**“连接断开”**并执行清理逻辑。
+- **返回值 == -1 且 errno 为 EAGAIN/EWOULDBLOCK**：表示底层的 TCP 接收缓冲区已经被**彻底读空**。在边缘触发（ET）模式下，这是正常现象，代表“数据已读完，连接仍保持正常”，程序应停止读取，交回控制权。
+- **返回值 == -1 且 errno 为其他值**：发生真实的系统级错误，需要根据具体的错误码进行异常处理。
 
-`write()`的返回值是一个有符号长整型ssize_t，对于当前项目，有以下含义
+### 2. `write()` 函数返回值解析
 
-- `write()返回 > 0`：表示内核接受的字节数，并放入TCP发送缓冲区
-  - 返回值 `== msg.size()`：请求发送的数据全部接受，此时`remaining==0`
-  - 返回值  `< msg.size()`：请求发送的数据部分接受，此时`remaining == msg.size() - nwrote`、
-- `write()返回 == -1：此时同样检查错误码
-  - 其他错误码包括：
-    - `EPIPE`：客户端突然崩溃
-    - `ECONNRESET`：对端重置了连接
+`write()` 的返回值类型为有符号长整型 `ssize_t`，在向对端发送数据时需处理以下几种状态：
 
-这是 Unix/Linux 系统编程的标准机制：
+- **返回值 == msg.size()**：最理想状态，请求发送的数据被内核发送缓冲区**全部接收**。此时剩余待写字节数 `remaining == 0`。
+- **返回值 > 0 且 < msg.size()**：部分发送成功。说明内核发送缓冲区已满，只塞进去了一部分数据。此时必须记录剩余数据量（`remaining = msg.size() - nwrote`），等待 Epoll 触发下一次可写事件（EPOLLOUT）时继续发送。
+- **返回值 == -1**：写入操作失败，内核没有接收任何数据。此时必须立刻检查全局变量 `errno` 确认死因。
 
-1. 当一个系统调用（如 `read`, `write`, `accept`）失败时，它通常返回 `-1` 来标识失败
-2. **与此同时**，操作系统内核会修改当前线程的一个全局整型变量 —— **`errno`**
-3. `errno` 中存储了一个预定义的常量（如 `EAGAIN`, `EINTR` 等），用于指示具体的失败原因
+### 3. 全局变量 `errno` 使用法则
 
-**注意**：只有当函数返回指示失败的值（通常是 -1）时，读取 `errno` 才有意义。如果函数执行成功，`errno` 的值是未定义的（它可能残留了之前的错误码）
+这是 Unix/Linux 系统编程排查错误的标准机制。
 
-本项目中`errno`的类型：
+- **工作原理**：当 `read`、`write`、`accept` 等系统调用失败（返回 -1）时，操作系统内核会自动修改当前线程的全局整型变量 `errno`，赋予其一个预定义的常量以指示具体死因。
+- **铁律**：**只有当函数明确返回 -1 时，去读取 `errno` 才有意义。** 如果函数执行成功（返回 >= 0），此时 `errno` 的值是未定义的（里面大概率残留着上一次发生错误的旧代码）。
 
-- `EAGAIN` (Try again) / `EWOULDBLOCK` (Operation would block)
-  - `read()`时出现：底层的 TCP 接收缓冲区已经读空了
-  - `write()`时出现：底层的 TCP 发送缓冲区已经塞满了
-  - 在大多数 Linux 系统中，这两个宏的值是相等的，但为了跨平台兼容性，严谨的代码会把两个都写上：`errno == EAGAIN || errno == EWOULDBLOCK`
-- `EINTR` (Interrupted system call)
-  - 当你的线程正在阻塞调用（或者甚至是非阻塞调用在内核态准备数据的瞬间），突然操作系统收到了一个外部信号（Signal，比如你在终端按了 Ctrl+C 产生的 `SIGINT`，或者子进程退出的 `SIGCHLD`）。内核为了去处理这个优先级更高的信号，强行打断了你的 `read` 或 `write`
-  - 此时重新进行即可，`if (errno == EINTR) { continue; }` ，直接进入下一次 while 循环，重新调用 read/write
-- `EPIPE` (Broken pipe)
-  - 最容易在**写 (`write`)** 的时候发生
-  - 在 Linux 下，往一个触发了 `EPIPE` 的 Socket 写数据，内核默认会给你的进程发送一个 `SIGPIPE` 信号，这个信号的默认行为是直接杀死整个进程
-  - 需要在 `main` 函数的最开头加上一行代码忽略它：`signal(SIGPIPE, SIG_IGN);`防止程序崩溃
-- `ECONNRESET` (Connection reset by peer)
-  - 对端（客户端）硬重置了连接
-- `EMFILE` (Too many open files) / `ENFILE`
-  - 在主线程调用 `accept()` 接收新玩家连接时。Linux 系统对每个进程能打开的“文件描述符 (fd)”是有上限的（默认通常是 1024），超出这个上线时，`accept` 就会返回 -1，并报 `EMFILE`
+### 4. 网络编程高频错误码 (errno) 速查字典
+
+- **EAGAIN / EWOULDBLOCK** (Try again / Operation would block)
+  - **触发场景**：非阻塞模式下，读操作时遇到接收缓冲区为空；写操作时遇到发送缓冲区已满。
+  - **注意细节**：在大多 Linux 系统中这两个宏的值相等，但为了极致的跨平台兼容性，严谨的代码判定条件应写为：`if (errno == EAGAIN || errno == EWOULDBLOCK)`。
+- **EINTR** (Interrupted system call)
+  - **触发场景**：线程在内核态准备数据的瞬间，系统收到了更高优先级的外部信号（如 `SIGINT` 或子进程退出的 `SIGCHLD`），导致系统调用被强行打断。
+  - **处理方案**：无需报错，直接在代码逻辑中 `continue`，进入下一次循环重新发起 `read/write` 调用即可。
+- **EPIPE** (Broken pipe)
+  - **触发场景**：最常发生在写操作中，试图向一个已经被对端关闭（或异常断开）的 Socket 写入数据。
+  - **致命陷阱**：在 Linux 下触发此错误时，内核默认会向当前进程发送一个 `SIGPIPE` 信号，该信号的默认行为是**直接杀死整个进程**。
+  - **防御方案**：必须在 `main` 函数的最开头添加 `signal(SIGPIPE, SIG_IGN);` 来主动忽略该信号，防止服务端意外崩溃。
+- **ECONNRESET** (Connection reset by peer)
+  - **触发场景**：对端（如客户端网络异常、进程崩溃等）硬重置了连接，服务端收到了 RST 报文。
+- **EMFILE / ENFILE** (Too many open files)
+  - **触发场景**：通常在主线程调用 `accept()` 接收新玩家连接时触发。
+  - **失败原因**：当前进程打开的文件描述符 (fd) 数量已经达到了 Linux 系统的上限阈值（通常系统默认配置为 1024）。
 
 ​	
 
-
-#### Q3: 关于 `accept` 时客户端地址信息的来源
+## 关于 `accept` 时客户端地址信息的来源
 
 **操作系统内核 (OS Kernel)** 在 `accept` 系统调用发生时写入内存
 
@@ -411,9 +410,7 @@ while (true) {
 3. **内核填充**：当有客户端连接时，TCP 三次握手完成，内核从网络包头中提取出客户端的 IP 和端口号，然后**直接把这些数据写到了你提供的那个内存地址上**。
 4. **读取结果**：系统调用返回后，你再去读取那个 `InetAddress` 对象，里面就有了数据。
 
-### 二、 架构与内存管理 (Architecture & Memory)
-
-#### Q4: 关于 Socket 的所有权转移与生命周期
+## 关于 `Socket` 的所有权转移与生命周期
 
 Socket 指针就像一个接力棒：
 
@@ -456,6 +453,7 @@ std::thread new_worker([](){ /* do some work */ });
 workers.push_back(std::move(new_worker));
 ```
 - `std::condition_variable`:主要用途是解决生产者-消费者问题或任何需要线程等待特定条件才能继续执行的场景
+    
     1. 它是如何工作的？
         - 等待线程 (消费者):
             - 获取一个 `std::unique_lock` 来锁定 `std::mutex`
@@ -503,7 +501,7 @@ workers.push_back(std::move(new_worker));
 * **本质**：模板不是函数，而是**生成函数的规则**（编译器在编译期根据你的调用自动代写代码）
 * **`template<typename T>`**：
   * **类型抽象**：`typename `代表任意类型，与`class`等价使用（注意与`class F(){};`区分），`T` 是占位符，可以代表 `int`, `double`, 甚至指针 `int*`，可调用对象（如 lambda 表达式、函数对象或函数指针）
-  * **数量限制**：这种d写法指定了参数数量是**固定**的（这里是 1 个）
+  * **数量限制**：这种写法指定了参数数量是**固定**的（这里是 1 个）
 
 #### 核心符号：省略号 `...`
 
@@ -750,3 +748,47 @@ protoc -I=. \
 - 是 gRPC 客户端侧的代理对象，封装了对远程 gRPC 服务的调用逻辑
 - 由 Protocol Buffers 编译器（`protoc`）配合 gRPC 插件 自动生成，提供强类型、面向接口的 API
 
+atomic用法示例
+```c++
+#include <iostream>
+#include <atomic>
+
+// ==========================================
+// std::atomic 工业级核心 API 速查表
+// 适用场景：高并发下的简单计数器、状态标志位、全局自增 ID
+// ==========================================
+
+void AtomicCheatsheet() {
+    // 1. 【初始化】
+    // 推荐使用 C++11 的统一初始化（花括号）。
+    // 注意：std::atomic 禁用了拷贝构造，不能写 std::atomic<int> a = b;
+    std::atomic<int> counter{0}; 
+    std::atomic<bool> is_running{true};
+
+    // 2. 【安全写入 (Write)】
+    // 不能用普通的等号（counter = 100），必须用显式的 store()
+    counter.store(100); 
+
+    // 3. 【安全读取 (Read)】
+    // 虽然 cout << counter 可以直接读，但工业界强烈推荐 load()，
+    // 这能在代码审查 (Code Review) 时明确告诉大家：“这是在读一个并发原子变量”。
+    int current_val = counter.load(); 
+    std::cout << "Current value: " << current_val << std::endl; // 输出 100
+
+    // 4. 【安全加减 (Modify)】
+    // 虽然重载了 ++ 和 --，但在复杂代码中，fetch_add / fetch_sub 语义更清晰。
+    counter++;               // 原子 +1
+    counter += 5;            // 原子 +5
+    
+    // fetch_add() 会执行原子加法，并且【返回修改前的值】
+    int old_val = counter.fetch_add(10); 
+    // 此时 old_val 是 106，而 counter 内部变成了 116
+
+    counter.fetch_sub(6);    // 原子 -6，此时 counter 变成了 110
+
+    // 5. 【布尔类型的特有操作 (Exchange)】
+    // 经常用于实现最简单的自旋锁 (Spinlock) 或状态翻转。
+    // exchange() 会把新值塞进去，并返回老值，这整套动作是原子的。
+    bool old_status = is_running.exchange(false); 
+}
+```
