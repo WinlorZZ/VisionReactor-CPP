@@ -51,7 +51,7 @@ void Channel::handleEvent() {
         if(guard){
             handleEventWithGuard();
         }else{
-        // 提升失败，对象已销毁，安静地丢弃事件，完美避免段错误
+        // 提升失败，对象已销毁，丢弃事件，避免段错误
         // std::cout << "[Channel] 探测到 Connection 已死亡，忽略本次幽灵事件" << std::endl;
         }    
     }else{

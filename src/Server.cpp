@@ -47,6 +47,7 @@ void Server::handleNewConnection(Socket *clnt_sock) {
     // 绑定消息回调
     // 当 Connection 读完数据，会调用 Server::handleOnMessage
     conn->setOnMessageCallback(std::bind(&Server::handleOnMessage, this, std::placeholders::_1));
+    // 设置conn状态
     conn->connectEstablished();
 }
 
