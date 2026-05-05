@@ -38,7 +38,11 @@ public:
     void handleReadEvent();
     
     // 负责处理数据 (计算/业务)
-    void business( AsyncAIEngine* engine_ptr ); 
+    void business( AsyncAIEngine* engine_ptr );
+
+    // H.264 Annex B 排水循环：从 inputBuffer 中持续拆解 NALU
+    // 返回 false 表示触发了 OOM 熔断，调用方应释放连接
+    bool processH264Nalus();
 
     // 发送接口，业务处理完后调用此接口发送数据
     void send(const std::string& msg);

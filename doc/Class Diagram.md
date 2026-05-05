@@ -1,42 +1,43 @@
-    %% 关系定义
-    Server *-- ThreadPool : 组合 (Server 拥有 ThreadPool)
-    Server o-- Connection : 聚合 (Server 管理 Connection)
-
-
-
 ```mermaid
 classDiagram
     %% ==========================================
-    %% 核心排版秘诀 1：把关系连线写在最前面，且从最顶层往下写！
-    %% 引擎会根据这里的顺序，自顶向下（Top-Down）构建树形结构
+    %% 关系连线（自顶向下编排，Mermaid 按书写顺序布局）
     %% ==========================================
-    
-    %% Server 
+
+    %% ---------- Server 层 ----------
     Server *-- Acceptor
     Server *-- ThreadPool
-    Server *-- AsyncAIEngine 
-    Server *-- Connection 
+    Server *-- AsyncAIEngine
+    Server *-- Connection
     Server o-- EventLoop
-    
-    %% 业务层依赖
+
+    %% ---------- 业务层依赖 ----------
     Acceptor *-- Socket
     Acceptor *-- Channel
     Acceptor o-- EventLoop
-    
-    Connection *-- Socket 
+
+    Connection *-- Socket
     Connection *-- Channel
     Connection o-- EventLoop
+    Connection *-- Buffer : inputBuffer / outputBuffer
     Connection ..> AsyncAIEngine : 使用但不持有
+    Connection ..> H264Demuxer : 复用共享工具函数
+    Connection ..> NaluView : 零拷贝 NALU 描述
 
     AsyncAIEngine o-- ThreadPool : 回调投递
-    
-    %% 底层核心依赖
-    EventLoop *-- Epoll 
+
+    %% ---------- H.264 解复用层 ----------
+    H264Demuxer ..> NaluUnit : 产出（拷贝模式）
+    H264Demuxer ..> findH264StartCode : 委托搜索
+    Buffer ..> findH264StartCode : 委托搜索
+
+    %% ---------- 底层 Reactor ----------
+    EventLoop *-- Epoll
     Channel o-- EventLoop
     Epoll o-- Channel : epoll_event
 
     %% ==========================================
-    %% 使用 namespace 强制物理分区隔离
+    %% 类定义
     %% ==========================================
 
     namespace 01_Controller_Layer {
@@ -46,7 +47,6 @@ classDiagram
             -ThreadPool *threadPool
             -unique_ptr~AsyncAIEngine~ aiengine
             -map~int, shared_ptr~Connection~~ conns
-            +Server(EventLoop *loop)
             +handleNewConnection(Socket *sock) void
             +handleOnMessage(shared_ptr~Connection~ conn) void
         }
@@ -63,19 +63,51 @@ classDiagram
             -Socket *sock
             -Channel *channel
             -Buffer *inputBuffer
+            -Buffer *outputBuffer
             +business(AsyncAIEngine* ai_engine) void
+            +processH264Nalus() bool
             +send(string msg) void
         }
-        
+
         class AsyncAIEngine {
             -CompletionQueue cq_
             -thread cq_thread
             -ThreadPool* threadPool_
             +AnalyzeFrameAsync(uint64_t id, string&& data) void
         }
+
+        class Buffer {
+            -vector~char~ buffer_
+            -size_t readerIndex_
+            -size_t writerIndex_
+            +findH264StartCode(const char* start) const char*
+            +peekInt32() int32_t
+            +readFd(int fd, int* err) ssize_t
+            +retrieve(size_t len) void
+            +append(const char* data, size_t len) void
+        }
     }
 
-    namespace 03_Resource_Layer {
+    namespace 03_H264_Parse_Layer {
+        class H264Demuxer {
+            -vector~uint8_t~ streamData_
+            -int readIndex_
+            +getNextNalu() NaluUnit
+        }
+
+        class NaluUnit {
+            +vector~uint8_t~ payload
+            +int type
+        }
+
+        class NaluView {
+            +const uint8_t* data
+            +size_t size
+            +int type
+        }
+    }
+
+    namespace 04_Resource_Layer {
         class Socket {
             -int fd
             +bind(InetAddress*) void
@@ -90,7 +122,7 @@ classDiagram
         }
     }
 
-    namespace 04_Core_Reactor {
+    namespace 05_Core_Reactor {
         class EventLoop {
             -Epoll *ep
             +loop() void
@@ -110,7 +142,11 @@ classDiagram
             +handleEvent() void
         }
     }
+
+    namespace 06_Shared_Utilities {
+        class findH264StartCode {
+            <<free function>>
+            +findH264StartCode(start: const uint8_t*, end: const uint8_t*) const uint8_t*
+        }
+    }
 ```
-
-
-

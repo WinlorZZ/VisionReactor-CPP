@@ -2,7 +2,8 @@
 #include <string>
 #include <sys/uio.h> // readv 的核心头文件
 #include <errno.h>   // 错误码
-#include <arpa/inet.h> // ntohl , htonl 
+#include <arpa/inet.h> // ntohl , htonl
+#include "h264_demuxer.h" // 共享 findH264StartCode / getNaluType
 
 class Buffer{
 public:
@@ -36,6 +37,18 @@ public:
         }
         return 0;
     }
+
+    // 委托到 h264_demuxer.h 中的共享零拷贝起始码搜索函数（消除重复实现）
+    // reinterpret_cast<char* ↔ uint8_t*>: 同大小类型的合法转换，零开销，仅改变编译器视角
+    const char* findH264StartCode(const char* start = nullptr) const {
+        auto* s = reinterpret_cast<const uint8_t*>(start ? start : peek());
+        auto* e = reinterpret_cast<const uint8_t*>(begin() + writerIndex_);
+        return reinterpret_cast<const char*>(::findH264StartCode(s, e));
+    }
+
+    // OOM 防火墙阈值（static constexpr = 编译期常量，无运行时存储开销）
+    static constexpr size_t kH264MaxBufferBytes = 10 * 1024 * 1024; // 10MB
+    static constexpr size_t kH264MaxNaluBytes   =  5 * 1024 * 1024; // 5MB
 
     std::string retrieveAsString(size_t len) {
         if (len > readableBytes()) len = readableBytes(); 

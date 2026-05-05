@@ -99,7 +99,139 @@ void Connection::handleClose() {
     }
 }
 
-// 业务处理 (运行在 Worker 线程)
+// ==================== H.264 Annex B 排水循环（粘包/半包/熔断） ====================
+//
+// 设计要点:
+//   - 零拷贝: 全程操作裸指针，不产生任何 std::string 拷贝
+//   - 粘包处理: while(true) 循环连续切分，直到缓冲区耗尽或不完整帧
+//   - 半包等待: 找到起始码但找不到下一个起始码时，break 等待下次 Epoll 触发
+//   - TCP 截断起始码: findH264StartCode 内建边界检查，末尾 00/00 00 自然返回
+//     nullptr; 下次 readv 补齐后重新搜索即可拼接完整起始码
+//   - OOM 熔断: 超过 10MB 且无有效起始码 → 清空 Buffer → 关闭连接
+
+static void ProcessNalu(const char* data, size_t len) {
+    // 占位函数: 后续替换为实际的 NALU 处理逻辑（编码/推流/写入文件等）
+    if (len > 0) {
+        int naluType = getNaluType(static_cast<uint8_t>(data[0])); // 复用 h264_demuxer.h
+        std::cout << "[H264] 切出 NALU type=" << naluType
+                  << " size=" << len << "B" << std::endl;
+    }
+}
+
+bool Connection::processH264Nalus() {
+    // ===================== 阶段 0: OOM 防火墙 =====================
+    // 触发条件: 缓冲区超过 10MB 却连一个合法的 H.264 起始码都找不到
+    // 此时大概率是恶意垃圾数据或协议错乱，继续积累只会撑爆内存
+    if (inputBuffer->readableBytes() > Buffer::kH264MaxBufferBytes &&
+        inputBuffer->findH264StartCode() == nullptr) {
+        std::cerr << "[OOM Firewall] 缓冲区已达 "
+                  << (inputBuffer->readableBytes() / (1024.0 * 1024.0))
+                  << "MB 且未发现 H.264 起始码，触发熔断！清空并断开连接。"
+                  << std::endl;
+        inputBuffer->retrieveAll();
+        handleClose();
+        return false; // 通知调用方：连接已进入销毁流程
+    }
+
+    // ===================== 阶段 1: 排水循环 =====================
+    while (true) {
+        // ----- 1a. 定位当前 NALU 的起始码 -----
+        //
+        // 从 readerIndex_ 开始搜索第一个 00 00 01 / 00 00 00 01。
+        // 返回值是指向底层 vector<char> 的裸指针，不产生内存拷贝。
+        const char* startCode = inputBuffer->findH264StartCode();
+
+        if (startCode == nullptr) {
+            // 场景 A: 缓冲区里连一个起始码都没有
+            //   - 正常情况: 数据还没到齐，等待下次 Epoll 触发
+            //   - 异常情况: 垃圾数据在积累，由阶段 0 的 OOM 防火墙兜底
+            break;
+        }
+
+        // ----- 1b. 跳过起始码前的垃圾数据 -----
+        //
+        // 场景: 流开头可能包含非 H.264 数据（如 HTTP 头残留、错位字节等），
+        // 如果起始码不在 readerIndex_ 位置，说明前面有垃圾，全部丢弃。
+        if (startCode > inputBuffer->peek()) {
+            size_t garbageLen = startCode - inputBuffer->peek();
+            std::cout << "[H264] 跳过 " << garbageLen
+                      << "B 垃圾数据（起始码前非 H.264 内容）" << std::endl;
+            inputBuffer->retrieve(garbageLen);
+        }
+        // 此时 inputBuffer->peek() 正好指向起始码首字节
+
+        // ----- 1c. 判定起始码长度（3 字节还是 4 字节） -----
+        const char* p = inputBuffer->peek();
+        size_t readable = inputBuffer->readableBytes();
+        int scLen = 3; // 默认 3 字节: 00 00 01
+        if (readable >= 4 && p[2] == 0x00 && p[3] == 0x01) {
+            scLen = 4; // 4 字节: 00 00 00 01
+        }
+
+        // ----- 1d. 搜索下一个起始码（标记当前 NALU 的结束位置） -----
+        //
+        // 从当前起始码之后开始搜索。下一个起始码的位置就是当前 NALU 的
+        // 数据边界。H.264 Annex B 标准中，NALU 之间以起始码分隔:
+        //
+        //   ... [00 00 00 01] [NALU_DATA] [00 00 00 01] [NEXT_NALU] ...
+        //                    |----------- 当前 NALU -----------|
+        //
+        const char* nextStartCode = inputBuffer->findH264StartCode(p + scLen);
+
+        // ----- 1e. 半包判断: 找不到下一个起始码 -----
+        if (nextStartCode == nullptr) {
+            // 场景 B: 当前 NALU 的尾部数据尚未到达
+            //
+            // 此时绝不能移动 readerIndex_！一旦移动，下次搜索会从错误位置
+            // 开始，导致数据错乱。直接 break，等待下次 readv 补齐数据后，
+            // 下一轮 onMessage 会重新进入本循环，从同一位置继续搜索。
+            //
+            // TCP 截断起始码的边界情况:
+            //   包尾残留 00 00，下个包首字节是 01。
+            //   findH264StartCode 在 p+2 >= end 时自然跳过，
+            //   下次循环时数据已补齐，00 00 01 被完整匹配。
+            //
+            // 单 NALU 超大保护: 若当前 NALU 数据已超过 5MB 仍无结束标记，
+            // 视为异常（正常 H.264 NALU 远小于此值），触发保护
+            size_t currentNaluDataSize = inputBuffer->beginWrite() - (p + scLen);
+            if (currentNaluDataSize > Buffer::kH264MaxNaluBytes) {
+                std::cerr << "[OOM Firewall] 单 NALU 数据已超 "
+                          << (currentNaluDataSize / (1024.0 * 1024.0))
+                          << "MB 且无结束起始码，异常！清空并断开。" << std::endl;
+                inputBuffer->retrieveAll();
+                handleClose();
+                return false;
+            }
+
+            break; // 半包等待: 不回退、不消费，原地等数据
+        }
+
+        // ----- 1f. 提取并处理完整 NALU -----
+        //
+        // NALU 数据区域 = [当前起始码末尾, 下一个起始码开头)
+        const char* naluData = p + scLen;
+        size_t naluSize = nextStartCode - naluData;
+
+        if (naluSize > 0) {
+            // 调用 NALU 处理函数（当前为占位，后续替换为实际业务逻辑）
+            ProcessNalu(naluData, naluSize);
+        }
+        // 注意: 长度为 0 的 NALU 理论上不会出现（起始码不会连续紧挨），
+        // 但即使出现也安全跳过
+
+        // ----- 1g. 移动读游标，前进到下一个起始码 -----
+        //
+        // retrieve(len) 的效果: readerIndex_ += len
+        // 下一轮循环的 peek() 将正好指向 nextStartCode 位置（即下一帧的
+        // 起始码），实现连续切包。
+        inputBuffer->retrieve(nextStartCode - p);
+        // 循环回到 1a，继续解析下一个 NALU
+    }
+
+    return true; // 本轮排水完成（可能因半包等待或缓冲区耗尽而退出）
+}
+
+// 原有的 business 方法保留不动，供旧协议路径（4字节长度前缀）使用
 void Connection::business(AsyncAIEngine* engine_ptr) {
     // std::cerr << "[Critical Debug] 进入 business 函数成功！" << std::endl;
     if ( inputBuffer->readableBytes() == 0 ) return;// 当读缓冲区为空时返回
