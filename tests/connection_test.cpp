@@ -10,7 +10,7 @@
 TEST(ConnectionStability, SharedFromThisAndTieSafety) {
     EventLoop loop;
     
-    // [修复点]：向操作系统申请一个真实的空 TCP Socket 描述符
+    // 向操作系统申请一个真实的空 TCP Socket 描述符
     // 这样就能完美骗过你的 Socket 类的底层校验
     int dummy_fd = ::socket(AF_INET, SOCK_STREAM, 0);
     Socket* sock = new Socket(dummy_fd); // 传入真实的 fd

@@ -27,12 +27,11 @@ Connection::Connection(EventLoop *loop, Socket *sock) : state_(kConnected), loop
     std::function<void()> writeCb = std::bind( &Connection::handleWriteEvent,this );
     channel->setWriteCallback(writeCb);
     // channel->enableReading(); //将注册epoll这一步从构造函数中剔除，以便使用shared_ptr
-    // readBuffer = ""; // 初始化
 }
 
 void Connection::connectEstablished(){
     // 此时shared_ptr可以使用了
-    channel->tie( shared_from_this() );
+    // channel->tie( shared_from_this() );
     channel->enableReading();
 }
 
@@ -84,33 +83,6 @@ void Connection::handleReadEvent() {
     if (inputBuffer->readableBytes() > 0 && onMessageCallback) {
         onMessageCallback(shared_from_this());
     }
-    // char buf[1024];
-    // while(true) {
-    //     memset(buf, 0, sizeof(buf));
-    //     ssize_t bytes_read = read(sock->fd(), buf, sizeof(buf));
-        
-    //     if(bytes_read > 0) {
-    //         // [CHANGE] 存入缓冲区，而不是直接 echo
-    //         inputBuffer->append(buf, bytes_read);
-    //     } else if(bytes_read == -1 && errno == EINTR) {
-    //         continue;
-    //     } else if(bytes_read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-    //         // 数据读完了,但连接不需要销毁，通知等待
-    //         // 如果读到了数据，通知 Server
-    //         if(inputBuffer->readableBytes() > 0 && onMessageCallback) {
-    //             onMessageCallback( shared_from_this() );
-    //         }
-    //         break;
-    //     } else if(bytes_read == 0) {
-    //         // 断开连接
-    //         // 通知上层清理
-    //         if(deleteConnectionCallback) deleteConnectionCallback(sock);
-    //         break;
-    //     } else {
-    //          if(deleteConnectionCallback) deleteConnectionCallback(sock);
-    //          break;
-    //     }
-    // }
 }
 
 void Connection::handleClose() {
