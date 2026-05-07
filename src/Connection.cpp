@@ -27,6 +27,8 @@ Connection::Connection(EventLoop *loop, Socket *sock) : state_(kConnected), loop
     std::function<void()> writeCb = std::bind( &Connection::handleWriteEvent,this );
     channel->setWriteCallback(writeCb);
     // channel->enableReading(); //将注册epoll这一步从构造函数中剔除，以便使用shared_ptr
+    // 执行构造函数的时候，外层的 std::make_shared 还没有执行完，
+    // 当前对象还处于‘半成品’状态，根本没有被 shared_ptr 管理
 }
 
 void Connection::connectEstablished(){
