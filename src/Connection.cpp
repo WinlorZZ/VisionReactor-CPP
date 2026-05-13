@@ -33,7 +33,7 @@ Connection::Connection(EventLoop *loop, Socket *sock) : state_(kConnected), loop
 
 void Connection::connectEstablished(){
     // 此时shared_ptr可以使用了
-    // channel->tie( shared_from_this() );
+    channel->tie( shared_from_this() );
     channel->enableReading();
 }
 
