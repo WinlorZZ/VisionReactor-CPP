@@ -13,6 +13,7 @@ public:
     // void addFd(int fd, uint32_t events);
     // 方法updateChannel用于更新已有Channel的事件设置，替代之前的addFd
     void updateChannel(Channel* channel); // 更新Channel对应的事件设置
+    void removeChannel(Channel* channel);
 
     // 方法poll用于等待事件发生，并返回实际就绪的事件列表//Channel指针列表
     std::vector<Channel*> poll(int timeout = -1);//设置为-1表示无限等待

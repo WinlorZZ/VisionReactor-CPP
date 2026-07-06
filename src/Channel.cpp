@@ -4,11 +4,19 @@
 #include "EventLoop.h"
 
 Channel::Channel(EventLoop *loop, int fd) 
-    : loop(loop), fd(fd), events(0), revents(0), isadd(false), tied_(false) { };// 构造函数, 初始化 fd 和 loop 指针
+    : tie_(),
+      tied_(false),
+      fd(fd),
+      loop(loop),
+      ep(nullptr),
+      isadd(false),
+      events(0),
+      revents(0) { };// 构造函数, 初始化 fd 和 loop 指针
 
 Channel::~Channel() {
-    // 析构函数暂时留空
-    // 在这里处理从 Epoll 中自动移除的逻辑
+    if (isadd) {
+        loop->removeChannel(this);
+    }
 }
 
 void Channel::tie(const std::shared_ptr<void>& obj){
@@ -36,7 +44,7 @@ void Channel::disableWriting(){
 
 // 关闭读事件监听
 void Channel::disableReading(){
-    events &= ~EPOLLIN;
+    events &= ~(EPOLLIN | EPOLLPRI | EPOLLRDHUP | EPOLLET);
     loop->updateChannel(this);
 }
   

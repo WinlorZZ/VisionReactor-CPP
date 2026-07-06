@@ -1,6 +1,7 @@
 # 1. 忽略构建中间产物目录
 build/
 **/build/
+build-*/
 
 # 2. 忽略 IDE 配置 (VSCode, Clion etc)
 .vscode/
@@ -35,6 +36,8 @@ __pycache__/
 *.pyc
 venv/
 .env
+.pids/
+*.log
 
 # 7. 【重要】忽略包含敏感密码的配置文件
 # 只提交配置文件的模版 (比如 mysql.conf.example)

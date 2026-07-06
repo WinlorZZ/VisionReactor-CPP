@@ -13,8 +13,16 @@ AsyncAIEngine::AsyncAIEngine(std::shared_ptr<grpc::Channel> gchannel,
 //处理CQ退出和线程Jion
 AsyncAIEngine::~AsyncAIEngine(){
     std::cout << "[AI Engine] 正在切断 AI 服务连接...\n";
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        for (auto &entry : active_calls_) {
+            entry.second->context.TryCancel();
+        }
+    }
     cq_.Shutdown();// 关闭信箱，停止Next等待
-    cq_thread.join(); // 防止野指针
+    if (cq_thread.joinable()) {
+        cq_thread.join(); // 防止野指针
+    }
     {// 清空 Map
         std::lock_guard<std::mutex> lock(mu_);
         active_calls_.clear(); 
@@ -40,12 +48,11 @@ void AsyncAIEngine::AnalyzeFrameAsync(FrameContextPtr ctx,std::string&& image_da
 
     //注册tag，由cq线程监视
     void* tag = (void*)call.get(); 
-    call->response_reader->Finish(&call->reply, &call->status, tag);
-    // call->response_reader->Finish(&call->reply, &call->status, (void*)call);
-    {// 上锁，把 shared_ptr 加入 Map 
+    {// 必须先登记生命周期，再允许 CompletionQueue 收到完成事件。
         std::lock_guard<std::mutex> lock(mu_);
         active_calls_[tag] = call;
     }
+    call->response_reader->Finish(&call->reply, &call->status, tag);
 }
 
 // 后台监听信箱 ,用死循环保持持续监听，独立线程
@@ -86,7 +93,7 @@ void AsyncAIEngine::AsyncCompleteRpc(){
             vision::FrameResponse reply_copy = call->reply;
             FrameContextPtr ctx_copy = call->ctx;
 
-            threadpool->add([reply_copy, ctx_copy, this]() {
+            threadpool->add([reply_copy, ctx_copy]() {
                 std::cout << "[Worker Thread] [+] 拿到 AI 回调结果！Frame ID: " 
                           << reply_copy.frame_id() 
                           << " | 推理耗时: " << reply_copy.inference_latency_us() / 1000.0 << " ms\n"
@@ -109,7 +116,7 @@ void AsyncAIEngine::AsyncCompleteRpc(){
                 ctx_copy->t_finish = LatencyProfiler::now();
 
                 // 打印终极性能 CT 报告！
-                this->PrintLatencyLog(ctx_copy);
+                AsyncAIEngine::PrintLatencyLog(ctx_copy);
             });
         }else {
             std::cout << "[CQ Thread] [-] 丢包或 AI 服务崩溃！ RPC 状态码: " 

@@ -11,8 +11,7 @@
 #include "game_ai.grpc.pb.h"
 
 Server::Server(EventLoop *loop) 
-    // : Server(loop, "127.0.0.1:50051") { 
-    : Server(loop, "172.30.131.156:50051") { 
+    : Server(loop, "127.0.0.1:50051") {
     // 这里什么都不用写，逻辑全在下面
 }
 
@@ -31,6 +30,9 @@ Server::Server(EventLoop *loop , const std::string& ai_target ) : loop(loop), ac
 
 Server::~Server() {
     delete acceptor;
+    conns.clear();
+    // CQ 线程可能仍向线程池投递任务，必须先停止 AI Engine。
+    aiengine.reset();
     delete threadPool; // 自动停止线程
     // for(auto &item : conns) {
     //     delete item.second;
@@ -53,16 +55,9 @@ void Server::handleNewConnection(Socket *clnt_sock) {
 
 // 3. 任务分发中心 (主线程执行)
 void Server::handleOnMessage(std::shared_ptr<Connection> conn) {
-    // 把引擎指针给线程
-    AsyncAIEngine* engine_ptr = aiengine.get();
-    // 将任务扔进线程池，主线程立刻返回
-    threadPool->add([conn , engine_ptr ](){
-        // --- 以下代码在 Worker 线程执行 ---
-        // std::cout << "Worker handling..." << std::endl;
-        // sleep(3); // 可选：模拟耗时测试并发
-        conn->business( engine_ptr ); // 执行具体的业务逻辑
-    });
-    //执行后，主线程立刻返回loop继续epoll_wait
+    // 协议拆包必须与 socket 读取处于同一 EventLoop 线程。
+    // gRPC 本身是异步调用，发起请求后不会阻塞等待推理结果。
+    conn->business(aiengine.get());
 }
 
 void Server::handleDeleteConnection(Socket *clnt_sock) {

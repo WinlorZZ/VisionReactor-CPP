@@ -7,11 +7,10 @@
 #include <memory> // shared_from_this
 #include "Buffer.h"
 #include "AsyncAIEngine.h"
+#include "EventLoop.h"
 #include <opencv2/opencv.hpp>// cv::Mat
 
-#include <thread> // 对应 std::this_thread
-#include <chrono> // 对应 std::chrono
-#include <atomic> // std::atomic
+#include <cerrno>
 
 Connection::Connection(EventLoop *loop, Socket *sock) : state_(kConnected), loop(loop), sock(sock) {
     //初始化channel
@@ -81,19 +80,23 @@ void Connection::handleReadEvent() {
             break;
         }
     }
-    // 将数据处理放到循环外进行（之前在n > 0就处理了）
+    // 拆包和 inputBuffer 的消费固定在 EventLoop 线程，避免与 Worker 数据竞争。
     if (inputBuffer->readableBytes() > 0 && onMessageCallback) {
         onMessageCallback(shared_from_this());
     }
 }
 
 void Connection::handleClose() {
+    if (state_ == kDisconnected) {
+        return;
+    }
     state_ = kDisconnecting; // 状态切换：准备断开
     channel->disableReading(); // 不再接收新数据
 
     // 检查是否有残留的未读数据
     if (outputBuffer->readableBytes() == 0) {
         // 没有则直接通知server回收
+        state_ = kDisconnected;
         if (deleteConnectionCallback) deleteConnectionCallback(sock);
     } else {
         std::cout << "[Connection] 触发优雅挥手，发现 Buffer 仍有积压，延迟销毁！" << std::endl;
@@ -282,8 +285,20 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
     }
 }
 
-// 发送接口，提供给business调用
+// 发送接口可由任意线程调用，实际 I/O 始终回到 EventLoop 线程执行。
 void Connection::send(const std::string& msg){
+    std::weak_ptr<Connection> weakSelf = shared_from_this();
+    loop->runInLoop([weakSelf, msg]() {// 在主线程（调用loop的线程）进行发送任务
+        if (auto self = weakSelf.lock()) {//检查conn是否存活
+            self->sendInLoop(msg);
+        }
+    });
+}
+
+void Connection::sendInLoop(const std::string& msg){
+    if (state_ == kDisconnected) {
+        return;
+    }
     //先发送已有的数据
     if(outputBuffer->readableBytes() > 0){
         outputBuffer->append(msg.c_str(),msg.size() );
@@ -294,12 +309,15 @@ void Connection::send(const std::string& msg){
     ssize_t nwrote = 0;// 记录
     size_t remaining = msg.size();
     bool faultError = false;
-    nwrote = write(sock->fd() , msg.c_str() , msg.size() );
+    do {
+        nwrote = write(sock->fd() , msg.c_str() , msg.size() );
+    } while (nwrote < 0 && errno == EINTR);
+
     if(nwrote >= 0){
         remaining = msg.size() - nwrote;
         if(remaining == 0) return;//没有剩余，直接返回
     }else{
-        //nwrote == 0;
+        nwrote = 0;
         if(errno != EWOULDBLOCK && errno != EAGAIN){
             faultError = true;//发生意外错误，排除读取完全部数据的错误码
         }
@@ -313,6 +331,9 @@ void Connection::send(const std::string& msg){
         if (!channel->isWriting()) {
             channel->enableWriting(); 
         }
+    } else if (faultError) {
+        std::cerr << "[Send] 写入失败: " << std::strerror(errno) << std::endl;
+        handleClose();
     }
 }
 
@@ -321,7 +342,10 @@ void Connection::handleWriteEvent(){
     if (channel->isWriting()) {
         std::cout << "[HandleWrite] Epoll 触发可写，准备搬运 Buffer 数据..." << std::endl;
         // 取出 outputBuffer_ 中的积压数据继续写
-        ssize_t n = write(sock->fd(), outputBuffer->peek(), outputBuffer->readableBytes());
+        ssize_t n;
+        do {
+            n = write(sock->fd(), outputBuffer->peek(), outputBuffer->readableBytes());
+        } while (n < 0 && errno == EINTR);
         
         if (n > 0) {
             // 发送成功 n 字节，向后移动读游标readerIndex_
@@ -334,9 +358,15 @@ void Connection::handleWriteEvent(){
                 //如果此时连接准备结束但尚未结束，调用回调函数通知释放connection
                 if(state_ == kDisconnecting ){
                     std::cout << "[Connection] 残留数据发送完毕，释放Connection" << std::endl;
+                    state_ = kDisconnected;
                     if (deleteConnectionCallback) deleteConnectionCallback(sock);
                 }
             }
+        } else if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+            std::cerr << "[HandleWrite] 写入失败: " << std::strerror(errno) << std::endl;
+            outputBuffer->retrieveAll();
+            channel->disableWriting();
+            handleClose();
         }
     }
 }

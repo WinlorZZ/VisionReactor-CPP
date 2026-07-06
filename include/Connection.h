@@ -54,6 +54,8 @@ public:
     void handleClose();
 
 private:
+    void sendInLoop(const std::string& msg);
+
     // 授权特定的测试套件访问私有成员
     // FRIEND_TEST(ConnectionTest, StickyPacketTest);
     // FRIEND_TEST(ConnectionTest, FatPacketHandling);

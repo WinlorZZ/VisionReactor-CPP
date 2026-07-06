@@ -3,6 +3,7 @@
 #include "Socket.h"
 #include "Channel.h"
 #include "util.h"
+#include <cerrno>
 #include <unistd.h>     // for close
 #include <sys/epoll.h> // epoll_create(), epoll_ctl(), epoll_wait()
 
@@ -39,6 +40,11 @@ void Epoll::updateChannel(Channel* channel){
     // 核心：将 data.ptr 指向 channel 对象本身！
     // 以前是 ev.data.fd = fd; 现在是存指针,多套了一层
     event.data.ptr = channel;
+
+    if (channel->getEvents() == 0) {
+        removeChannel(channel);
+        return;
+    }
     
     // 判断是 新增(ADD) 还是 修改(MOD)
     if (channel->isInEpoll() == false) {
@@ -52,6 +58,17 @@ void Epoll::updateChannel(Channel* channel){
         // std::cout << "Epoll: Modified fd " << fd << " events" << std::endl;
     }
     return;
+}
+
+void Epoll::removeChannel(Channel* channel) {
+    if (!channel->isInEpoll()) {
+        return;
+    }
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, channel->getFd(), nullptr) == -1 &&
+        errno != ENOENT && errno != EBADF) {
+        errif(true, "epoll del error");
+    }
+    channel->setInEpoll(false);
 }
 
 std::vector<Channel*> Epoll::poll(int timeout){

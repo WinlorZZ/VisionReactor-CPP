@@ -13,6 +13,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/heads/main.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
 
@@ -76,6 +77,7 @@ add_executable(Buffer_bench tests/Buffer_bench.cpp)
 add_executable(ThreadPool_bench tests/ThreadPool_bench.cpp)
 add_executable(connection_test tests/connection_test.cpp)
 add_executable(h264_demuxer_test tests/h264_demuxer_test.cpp)
+add_executable(event_loop_test tests/event_loop_test.cpp)
 # 测试程序同样链接 server_core，并额外链接 GTest 的 main 函数入口
 target_link_libraries(buffer_test server_core GTest::gtest_main)
 target_link_libraries(ThreadPool_test server_core GTest::gtest_main)
@@ -83,3 +85,11 @@ target_link_libraries(Buffer_bench server_core GTest::gtest_main)
 target_link_libraries(ThreadPool_bench server_core GTest::gtest_main)
 target_link_libraries(connection_test server_core GTest::gtest_main)
 target_link_libraries(h264_demuxer_test server_core GTest::gtest_main)
+target_link_libraries(event_loop_test server_core GTest::gtest_main)
+
+enable_testing()
+add_test(NAME buffer_test COMMAND buffer_test)
+add_test(NAME thread_pool_test COMMAND ThreadPool_test)
+add_test(NAME connection_test COMMAND connection_test)
+add_test(NAME h264_demuxer_test COMMAND h264_demuxer_test)
+add_test(NAME event_loop_test COMMAND event_loop_test)

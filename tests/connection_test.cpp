@@ -5,6 +5,8 @@
 #include "Socket.h"
 #include "EventLoop.h"
 #include <sys/socket.h> // 引入底层 socket 库
+#include <thread>
+#include <unistd.h>
 
 
 TEST(ConnectionStability, SharedFromThisAndTieSafety) {
@@ -64,4 +66,30 @@ TEST(ConnectionStability, HighFrequencyCreationSoakTest) {
         conn->handleClose(); 
     }
     SUCCEED();
+}
+
+TEST(ConnectionStability, CrossThreadSendRunsInEventLoop) {
+    EventLoop loop;
+    int fds[2];
+    ASSERT_EQ(::socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
+
+    auto conn = std::make_shared<Connection>(&loop, new Socket(fds[0]));
+    conn->connectEstablished();
+
+    const std::string payload = "event-loop-owned-write";
+    std::thread sender([&loop, conn, payload]() {
+        conn->send(payload);
+        loop.queueInLoop([&loop]() { loop.quit(); });
+    });
+
+    loop.loop();
+    sender.join();
+
+    char received[64] = {};
+    const ssize_t n = ::read(fds[1], received, sizeof(received));
+    ASSERT_GT(n, 0);
+    EXPECT_EQ(std::string(received, static_cast<size_t>(n)), payload);
+
+    conn.reset();
+    ::close(fds[1]);
 }
