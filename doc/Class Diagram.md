@@ -1,3 +1,7 @@
+> 可缩放、可编辑版本：[Class Diagram.drawio](./Class%20Diagram.drawio)。
+>
+> Draw.io 版本已按 `codex/stabilize` 分支更新，包含 `eventfd + queueInLoop` 跨线程投递结构；下方 Mermaid 保留作文本参考。
+
 ```mermaid
 classDiagram
     %% ==========================================

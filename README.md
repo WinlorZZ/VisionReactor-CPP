@@ -6,12 +6,12 @@
 
 ## 核心特性
 
-- **主从 Reactor 高并发模型** — 基于 `epoll` 边缘触发 (ET) + 非阻塞 IO，Main Reactor 专职 Accept，Sub-Reactor 处理 I/O 读写
-- **动态线程池** — `std::mutex` + `std::condition_variable` 实现任务队列，I/O 与业务逻辑解耦，充分利用多核 CPU
-- **异步 gRPC 微服务架构** — 采用 `CompletionQueue` 纯异步模型，Worker 线程发起 AI 推理请求后零阻塞返回，回调由守护线程投递至线程池
-- **智能内存管理** — `shared_ptr` / `weak_ptr` 管理 Connection 生命周期，Channel 使用 `weak_ptr` 跨线程存活检测，杜绝野指针与内存泄漏
-- **H.264 码流解析** — 内置 Annex B 格式 NALU 解复用器，支持 SPS/PPS/IDR 关键帧识别
-- **全链路延迟追踪** — `FrameContext` 携带唯一 TraceID，贯穿 TCP 到达 → 拆包 → gRPC → AI 推理 → 回执 → 响应的完整生命周期
+- **单 Reactor 事件驱动模型** — 基于 `epoll` 边缘触发 (ET) + 非阻塞 I/O，连接读写与协议拆包保持 EventLoop 线程归属
+- **跨线程安全投递** — `eventfd + queueInLoop` 唤醒 Reactor，Worker 不直接修改 Channel、epoll 或连接 Buffer
+- **异步 gRPC 微服务架构** — 采用 `CompletionQueue` 纯异步模型，请求发起后不阻塞等待推理，回调结果投递至线程池处理
+- **连接生命周期管理** — `shared_ptr` / `weak_ptr` 管理 Connection，`Channel::tie` 在事件回调期间维持对象存活
+- **H.264 实验模块** — 内置 Annex B 格式 NALU 解复用器；当前尚未接入 AI 推理主链路
+- **网关链路延迟追踪** — `FrameContext` 携带唯一 TraceID，覆盖 TCP 到达、拆包、gRPC、AI 推理与回执处理
 - **双层 Buffer 设计** — 内部 `vector<char>` + 栈上 64KB `extrabuf`，结合 `readv` 分散读，在 ET 模式下高效读取变长数据
 
 ## 架构概览
@@ -26,13 +26,15 @@ Client ──TCP──> Main Reactor (epoll_wait)
               Connection (读事件) ──> Buffer::readFd (readv 分散读)
                     │
                     ▼
-              ThreadPool (业务线程) ──> AsyncAIEngine::AnalyzeFrameAsync
+              Loop 线程协议拆包 ──> AsyncAIEngine::AnalyzeFrameAsync
                     │
                     ▼ (gRPC CompletionQueue)
               Python AI Node (YOLOv8) ──> FrameResponse
                     │
                     ▼
-              回调线程 ──> ThreadPool ──> Connection::send ──> Client
+              CQ 回调线程 ──> ThreadPool ──> 结果处理/延迟日志
+
+Worker 线程需要操作连接时，通过 `queueInLoop` 回投 EventLoop。
 ```
 
 ## 项目结构
@@ -68,6 +70,8 @@ Client ──TCP──> Main Reactor (epoll_wait)
 │   ├── buffer_test.cpp      # Buffer 单元测试
 │   ├── thread_test.cpp      # ThreadPool 单元测试
 │   ├── connection_test.cpp  # Connection 生命周期与拆包测试
+│   ├── event_loop_test.cpp  # EventLoop 跨线程唤醒测试
+│   ├── h264_demuxer_test.cpp
 │   ├── Buffer_bench.cpp     # Buffer 吞吐量基准
 │   └── ThreadPool_bench.cpp # ThreadPool 调度延迟基准
 ├── proto/
@@ -83,6 +87,7 @@ Client ──TCP──> Main Reactor (epoll_wait)
 │   ├── 全流程.drawio         # 流程图
 │   └── h264.cpp             # H.264 解复用器独立调试代码
 ├── main.cpp                 # 程序入口
+├── Makefile                 # 构建、测试与基准入口
 └── CMakeLists.txt
 ```
 
@@ -110,15 +115,13 @@ cd VisionReactor-CPP
 sudo apt install build-essential cmake libopencv-dev
 # gRPC/Protobuf 需从源码编译或通过 vcpkg 安装，参考 grpc.io 文档
 
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+make build
 ```
 
 编译产物：
 - `server` — 主程序
-- `buffer_test`、`thread_test`、`connection_test` — 单元测试
-- `buffer_bench`、`threadpool_bench` — 性能基准
+- `buffer_test`、`ThreadPool_test`、`connection_test` 等 — 单元测试
+- `Buffer_bench`、`ThreadPool_bench` — 性能基准
 
 ### 运行
 
@@ -136,12 +139,8 @@ cd build
 ### 运行测试
 
 ```bash
-cd build
-./buffer_test
-./thread_test
-./connection_test
-./buffer_bench
-./threadpool_bench
+make test
+make bench
 ```
 
 ## 类关系图
@@ -246,7 +245,7 @@ message FrameResponse {
 }
 ```
 
-## 全链路延迟追踪
+## 网关链路延迟追踪
 
 每帧携带 `FrameContext`，记录以下时间戳：
 
@@ -257,7 +256,7 @@ message FrameResponse {
 | `t_grpc_sent` | AsyncAIEngine | gRPC 请求已发出 |
 | `t3_python_cost_us` | Python 返回 | AI 纯推理耗时 |
 | `t_grpc_recv` | CompletionQueue 回调 | gRPC 回执到达 |
-| `t_finish` | Connection::send | 准备发回客户端 |
+| `t_finish` | CQ 结果任务 | 结果处理完成 |
 
 ## 技术要点
 

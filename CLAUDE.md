@@ -15,12 +15,12 @@ make buffer_test -j$(nproc)
 
 # 运行单个测试
 ./build/buffer_test
-./build/thread_test
+./build/ThreadPool_test
 ./build/connection_test
 
 # 运行基准测试
-./build/buffer_bench
-./build/threadpool_bench
+./build/Buffer_bench
+./build/ThreadPool_bench
 
 # 启动服务 (需先启动 Python AI 节点)
 cd python_ai && python Pserver.py &
@@ -33,7 +33,9 @@ cd python_ai && python Pserver.py &
 
 这是一个 C++17 异步网络网关，通过 TCP 接收视频帧，经异步 gRPC 分发给 Python YOLOv8 服务进行推理，再将结果返回客户端。
 
-**数据流：** `Client → epoll (ET) → Connection::handleReadEvent → ThreadPool → Connection::business → AsyncAIEngine::AnalyzeFrameAsync → gRPC CompletionQueue → Python YOLOv8 → CQ 回调 → ThreadPool → Connection::send → Client`
+**数据流：** `Client → epoll (ET) → Connection::handleReadEvent → Connection::business → AsyncAIEngine::AnalyzeFrameAsync → gRPC CompletionQueue → Python YOLOv8 → CQ 回调 → ThreadPool → 结果处理/延迟日志`
+
+**线程归属：** Connection 的读写 Buffer、Channel 和 epoll 状态只允许在 EventLoop 线程修改。其他线程通过 `EventLoop::queueInLoop` 投递闭包，并由 `eventfd` 唤醒 Reactor。
 
 **所有权链：** `Server` 持有 `EventLoop`（心跳）、`Acceptor`（监听 Socket）、`ThreadPool`（工作线程）、`AsyncAIEngine`（gRPC 存根 + CQ 线程），以及一个以 fd 为键的 `map<int, shared_ptr<Connection>>`。`Connection` 持有自身的 `Socket`、`Channel` 和两个 `Buffer`（输入/输出）。`AsyncAIEngine` 持有 gRPC `CompletionQueue` 及其轮询线程，以及一个 `map<tag, shared_ptr<AsyncClientCall>>` 用于管理在途 RPC。
 
