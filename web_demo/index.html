@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VisionReactor Live Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+      </section>
+
+      <aside class="panel">
+        <header>
+          <h1>VisionReactor</h1>
+          <span id="status" class="status">offline</span>
+        </header>
+
+        <label class="file-picker">
+          <input id="file" type="file" accept="video/*" />
+          <span>选择视频</span>
+        </label>
+
+        <div class="controls">
+          <button id="connect" type="button">连接</button>
+          <button id="play" type="button" disabled>播放</button>
+          <button id="pause" type="button" disabled>暂停</button>
+        </div>
+
+        <label class="field">
+          <span>WebSocket</span>
+          <input id="endpoint" type="text" value="ws://127.0.0.1:8888" />
+        </label>
+
+        <label class="field">
+          <span>抽帧 FPS</span>
+          <input id="fps" type="range" min="1" max="20" value="8" />
+          <strong id="fpsValue">8</strong>
+        </label>
+
+        <dl class="metrics">
+          <div><dt>Frame</dt><dd id="mFrame">-</dd></div>
+          <div><dt>Total</dt><dd id="mTotal">-</dd></div>
+          <div><dt>Gateway</dt><dd id="mGateway">-</dd></div>
+          <div><dt>gRPC</dt><dd id="mGrpc">-</dd></div>
+          <div><dt>Infer</dt><dd id="mInfer">-</dd></div>
+          <div><dt>Objects</dt><dd id="mObjects">-</dd></div>
+          <div><dt>In flight</dt><dd id="mInflight">0</dd></div>
+        </dl>
+
+        <p id="message" class="message"></p>
+      </aside>
+    </main>
+
+    <canvas id="capture" hidden></canvas>
+    <script src="./app.js"></script>
+  </body>
+</html>
