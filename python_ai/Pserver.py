@@ -38,6 +38,7 @@ import grpc
 import cv2
 import numpy as np
 from concurrent import futures
+import threading
 import torch
 from ultralytics import YOLO
 import game_ai_pb2
@@ -59,6 +60,7 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
         # YOLOv8 默认会自动找 GPU，但我们可以强行提醒它
         self.model = YOLO('yolov8n.pt')
         self.model.to('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model_lock = threading.Lock()
         print("[AI Engine] Model loaded successfully.")
 
     def AnalyzeFrame(self, request, context):
@@ -75,8 +77,17 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
             context.set_details("Failed to decode image bytes.")
             return game_ai_pb2.FrameResponse()
 
-        # OpenCV 解码与 YOLO 推理
-        results = self.model(img_np, imgsz=640, verbose=False)
+        try:
+            # Ultralytics/PyTorch 模型对象不假设线程安全。演示链路优先稳定低延迟，
+            # 让并发 RPC 在模型入口串行化，避免远端进程偶发 reset。
+            with self.model_lock:
+                with torch.inference_mode():
+                    results = self.model(img_np, imgsz=640, verbose=False)
+        except Exception as exc:
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"YOLO inference failed: {exc}")
+            print(f"[-] YOLO inference failed on frame {request.frame_id}: {exc}", flush=True)
+            return game_ai_pb2.FrameResponse()
 
         response = game_ai_pb2.FrameResponse()
         response.frame_id = request.frame_id
@@ -111,12 +122,13 @@ class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
         return response
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
+    max_workers = int(os.environ.get("VISION_AI_WORKERS", "1"))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
     game_ai_pb2_grpc.add_VisionAIServicer_to_server(VisionAIServicer(), server)
     
     server.add_insecure_port('[::]:50051')
     server.start()
-    print("[AI Engine] gRPC Server is running on port 50051...")
+    print(f"[AI Engine] gRPC Server is running on port 50051 with {max_workers} worker(s)...")
     server.wait_for_termination()
 
 if __name__ == '__main__':
