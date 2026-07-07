@@ -22,12 +22,16 @@ using vision::VisionAI;
 using vision::FrameRequest;
 using vision::FrameResponse;
 
+class Connection;
+
 class AsyncAIEngine{
 public:
     AsyncAIEngine(std::shared_ptr<grpc::Channel> gchannel,ThreadPool* pool);
     virtual ~AsyncAIEngine();
     // 1. 发起异步请求 (在worker线程中运行)
-    virtual void AnalyzeFrameAsync(FrameContextPtr ctx,std::string&& image_date);
+    virtual void AnalyzeFrameAsync(FrameContextPtr ctx,
+                                   std::string&& image_date,
+                                   std::weak_ptr<Connection> conn);
     static void PrintLatencyLog(const FrameContextPtr& ctx);
     
 private:
@@ -44,6 +48,7 @@ private:
         std::unique_ptr<ClientAsyncResponseReader<FrameResponse>> response_reader;
         // 记录任务的时间信息
         FrameContextPtr ctx; 
+        std::weak_ptr<Connection> conn;
     };
 
     std::unique_ptr<VisionAI::Stub> stub_;// 存根

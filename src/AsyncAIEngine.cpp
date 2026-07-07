@@ -1,5 +1,7 @@
 #include <iostream>
 #include "AsyncAIEngine.h"
+#include "Connection.h"
+#include "ResponseSerializer.h"
 
 
 //传入gRPC通道和线程池指针ThreadPool*
@@ -30,7 +32,9 @@ AsyncAIEngine::~AsyncAIEngine(){
 }
 
 // 发起异步请求 (在worker线程中运行)
-void AsyncAIEngine::AnalyzeFrameAsync(FrameContextPtr ctx,std::string&& image_date){
+void AsyncAIEngine::AnalyzeFrameAsync(FrameContextPtr ctx,
+                                      std::string&& image_date,
+                                      std::weak_ptr<Connection> conn){
     vision::FrameRequest request;
     request.set_frame_id(ctx->trace_id);// 帧id
     // request.set_timestamp_ms(98874);// 时间戳
@@ -40,6 +44,7 @@ void AsyncAIEngine::AnalyzeFrameAsync(FrameContextPtr ctx,std::string&& image_da
     // 使用智能指针
     auto call = std::make_shared<AsyncClientCall>();
     call->ctx = ctx;
+    call->conn = conn;
     call->ctx->t_grpc_sent = LatencyProfiler::now();// 替代下一行的创建时间
     // call->create_time = std::chrono::steady_clock::now();
 
@@ -92,8 +97,9 @@ void AsyncAIEngine::AsyncCompleteRpc(){
             // 深拷贝，防止指针逃逸
             vision::FrameResponse reply_copy = call->reply;
             FrameContextPtr ctx_copy = call->ctx;
+            std::weak_ptr<Connection> conn_copy = call->conn;
 
-            threadpool->add([reply_copy, ctx_copy]() {
+            threadpool->add([reply_copy, ctx_copy, conn_copy]() {
                 std::cout << "[Worker Thread] [+] 拿到 AI 回调结果！Frame ID: " 
                           << reply_copy.frame_id() 
                           << " | 推理耗时: " << reply_copy.inference_latency_us() / 1000.0 << " ms\n"
@@ -107,21 +113,35 @@ void AsyncAIEngine::AsyncCompleteRpc(){
                               << " | 宽高: " << box.width() << "x" << box.height() << "\n";
                 }
 
-                // ==========================================
-                // 【全链路闭环】：此处模拟将数据丢给 Connection 发送
-                // ==========================================
-                // 假设这里调用了 connection->send(最终的序列化数据);
-                
                 // 【探针注入：T4 终点】准备发回客户端前的一瞬间
                 ctx_copy->t_finish = LatencyProfiler::now();
 
                 // 打印终极性能 CT 报告！
                 AsyncAIEngine::PrintLatencyLog(ctx_copy);
+
+                if (auto conn = conn_copy.lock()) {
+                    conn->completeAnalysis(ResponseSerializer::successJson(ctx_copy, reply_copy));
+                }
             });
         }else {
             std::cout << "[CQ Thread] [-] 丢包或 AI 服务崩溃！ RPC 状态码: " 
                       << call->status.error_code() 
                       << " | 错误信息: " << call->status.error_message() << "\n";
+            FrameContextPtr ctx_copy = call->ctx;
+            std::weak_ptr<Connection> conn_copy = call->conn;
+            std::string error_message = ok ? call->status.error_message() : "CompletionQueue returned !ok";
+            int error_code = ok ? call->status.error_code() : -1;
+            threadpool->add([ctx_copy, conn_copy, error_message, error_code]() {
+                ctx_copy->t_grpc_recv = LatencyProfiler::now();
+                ctx_copy->t_finish = ctx_copy->t_grpc_recv;
+                if (auto conn = conn_copy.lock()) {
+                    conn->completeAnalysis(ResponseSerializer::errorJson(
+                        ctx_copy->trace_id,
+                        "RPC_FAILED",
+                        "AI RPC failed (" + std::to_string(error_code) + "): " + error_message,
+                        ctx_copy));
+                }
+            });
         }
         // delete call;
     }

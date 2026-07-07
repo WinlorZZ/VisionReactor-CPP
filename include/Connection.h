@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <arpa/inet.h>
+#include <cstddef>
 #include "LatencyProfiler.h"
 // #include <gtest/gtest_prod.h>
 
@@ -47,6 +48,9 @@ public:
     // 发送接口，业务处理完后调用此接口发送数据
     void send(const std::string& msg);
 
+    // AI 回调完成后调用：归还连接在途额度，并按当前协议写回结果
+    void completeAnalysis(const std::string& json);
+
     // 写回调，由EventLoop调用
     void handleWriteEvent();
 
@@ -54,7 +58,22 @@ public:
     void handleClose();
 
 private:
+    enum class ClientProtocol {
+        TcpLengthPrefixed,
+        WebSocket
+    };
+
     void sendInLoop(const std::string& msg);
+    void sendApplicationMessageInLoop(const std::string& json);
+    void submitImageInLoop(AsyncAIEngine* engine_ptr,
+                           std::string&& image_data,
+                           FrameContextPtr ctx = nullptr);
+    bool tryHandleWebSocketHandshake();
+    bool processWebSocketFrames(AsyncAIEngine* engine_ptr);
+    void sendWebSocketFrameInLoop(uint8_t opcode, const std::string& payload);
+    void sendProtocolErrorInLoop(uint64_t frame_id,
+                                 const std::string& code,
+                                 const std::string& message);
 
     // 授权特定的测试套件访问私有成员
     // FRIEND_TEST(ConnectionTest, StickyPacketTest);
@@ -77,4 +96,10 @@ private:
     Buffer* outputBuffer;
     // 时间信息上下文
     FrameContextPtr current_frame_ctx_;
+
+    ClientProtocol protocol_ = ClientProtocol::TcpLengthPrefixed;
+    bool websocket_handshake_done_ = false;
+    size_t in_flight_requests_ = 0;
+    static constexpr size_t kMaxInFlightRequests = 2;
+    static constexpr size_t kMaxFrameBytes = 10 * 1024 * 1024;
 };

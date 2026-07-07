@@ -8,9 +8,82 @@
 #include "Buffer.h"
 #include "AsyncAIEngine.h"
 #include "EventLoop.h"
+#include "ResponseSerializer.h"
 #include <opencv2/opencv.hpp>// cv::Mat
 
 #include <cerrno>
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
+#include <sstream>
+
+namespace {
+
+std::string base64Encode(const unsigned char* data, size_t len) {
+    std::string encoded(4 * ((len + 2) / 3), '\0');
+    const int out_len = EVP_EncodeBlock(reinterpret_cast<unsigned char*>(&encoded[0]), data, len);
+    encoded.resize(static_cast<size_t>(out_len));
+    return encoded;
+}
+
+std::string websocketAcceptKey(const std::string& client_key) {
+    static const std::string kGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    const std::string material = client_key + kGuid;
+    unsigned char digest[SHA_DIGEST_LENGTH];
+    SHA1(reinterpret_cast<const unsigned char*>(material.data()), material.size(), digest);
+    return base64Encode(digest, sizeof(digest));
+}
+
+std::string trimHeaderValue(std::string value) {
+    auto not_space = [](unsigned char c) { return !std::isspace(c); };
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), not_space));
+    value.erase(std::find_if(value.rbegin(), value.rend(), not_space).base(), value.end());
+    return value;
+}
+
+std::string getHttpHeader(const std::string& request, const std::string& name) {
+    std::istringstream in(request);
+    std::string line;
+    const std::string wanted = name + ":";
+    while (std::getline(in, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (line.size() >= wanted.size()) {
+            bool match = true;
+            for (size_t i = 0; i < wanted.size(); ++i) {
+                if (std::tolower(static_cast<unsigned char>(line[i])) !=
+                    std::tolower(static_cast<unsigned char>(wanted[i]))) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return trimHeaderValue(line.substr(wanted.size()));
+            }
+        }
+    }
+    return "";
+}
+
+uint64_t readBigEndian(const char* data, size_t len) {
+    uint64_t value = 0;
+    for (size_t i = 0; i < len; ++i) {
+        value = (value << 8) | static_cast<unsigned char>(data[i]);
+    }
+    return value;
+}
+
+void appendBigEndian(std::string& out, uint64_t value, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        const size_t shift = (len - i - 1) * 8;
+        out.push_back(static_cast<char>((value >> shift) & 0xff));
+    }
+}
+
+} // namespace
 
 Connection::Connection(EventLoop *loop, Socket *sock) : state_(kConnected), loop(loop), sock(sock) {
     //初始化channel
@@ -247,12 +320,24 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
                 std::cerr << "[-] 致命错误：engine_ptr 是空指针！" << std::endl;
                 return;
     }
+
+    if (!websocket_handshake_done_ && inputBuffer->readableBytes() >= 3 &&
+        std::string(inputBuffer->peek(), inputBuffer->peek() + 3) == "GET") {
+        if (!tryHandleWebSocketHandshake()) {
+            return;
+        }
+    }
+
+    if (websocket_handshake_done_) {
+        processWebSocketFrames(engine_ptr);
+        return;
+    }
     
     while (inputBuffer->readableBytes() >= 4) {
         // 包头解析
         uint32_t body_len = inputBuffer->peekInt32();
         std::cout << "[Debug] 收到 Header，解析出的 Body 长度为: " << body_len << std::endl;
-        if (body_len <= 0 || body_len > 10 * 1024 * 1024) {
+        if (body_len <= 0 || body_len > kMaxFrameBytes) {
             // std::cerr << "[-] 致命错误：非法的数据包长度 " << body_len << "，强制断开连接！\n";
             handleClose();
             break;
@@ -274,7 +359,7 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
             std::cout << "[协议层] 成功切包！提取到完整图像载荷，大小: " 
                         << message.size() << " bytes -> FrameID: " << current_frame_id << "\n";
             // 发送图片数据
-            engine_ptr->AnalyzeFrameAsync(current_frame_ctx_, std::move(message));
+            submitImageInLoop(engine_ptr, std::move(message), current_frame_ctx_);
             // 发送结束后重置上下文
             current_frame_ctx_.reset();
         }else{// 有包头但数据未传完，退出循环并等待下一次 Epoll 触发可读事件
@@ -283,6 +368,161 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
             break;
         }
     }
+}
+
+bool Connection::tryHandleWebSocketHandshake() {
+    const char* header_end = std::search(inputBuffer->peek(),
+                                         static_cast<const char*>(inputBuffer->beginWrite()),
+                                         "\r\n\r\n",
+                                         "\r\n\r\n" + 4);
+    if (header_end == inputBuffer->beginWrite()) {
+        if (inputBuffer->readableBytes() > 8192) {
+            send("HTTP/1.1 431 Request Header Fields Too Large\r\nConnection: close\r\n\r\n");
+            handleClose();
+        }
+        return false;
+    }
+
+    const size_t request_len = static_cast<size_t>(header_end - inputBuffer->peek()) + 4;
+    std::string request = inputBuffer->retrieveAsString(request_len);
+    const std::string key = getHttpHeader(request, "Sec-WebSocket-Key");
+    if (key.empty()) {
+        send("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
+        handleClose();
+        return false;
+    }
+
+    const std::string response =
+        "HTTP/1.1 101 Switching Protocols\r\n"
+        "Upgrade: websocket\r\n"
+        "Connection: Upgrade\r\n"
+        "Sec-WebSocket-Accept: " + websocketAcceptKey(key) + "\r\n\r\n";
+
+    protocol_ = ClientProtocol::WebSocket;
+    websocket_handshake_done_ = true;
+    send(response);
+    std::cout << "[WebSocket] 握手完成，连接切换到浏览器实时视频协议" << std::endl;
+    return true;
+}
+
+bool Connection::processWebSocketFrames(AsyncAIEngine* engine_ptr) {
+    while (inputBuffer->readableBytes() >= 2) {
+        const char* data = inputBuffer->peek();
+        const uint8_t b0 = static_cast<uint8_t>(data[0]);
+        const uint8_t b1 = static_cast<uint8_t>(data[1]);
+        const uint8_t opcode = b0 & 0x0f;
+        const bool masked = (b1 & 0x80) != 0;
+        uint64_t payload_len = b1 & 0x7f;
+        size_t header_len = 2;
+
+        if (payload_len == 126) {
+            if (inputBuffer->readableBytes() < header_len + 2) {
+                return true;
+            }
+            payload_len = readBigEndian(data + header_len, 2);
+            header_len += 2;
+        } else if (payload_len == 127) {
+            if (inputBuffer->readableBytes() < header_len + 8) {
+                return true;
+            }
+            payload_len = readBigEndian(data + header_len, 8);
+            header_len += 8;
+        }
+
+        if (!masked || payload_len > kMaxFrameBytes) {
+            sendWebSocketFrameInLoop(0x8, "");
+            handleClose();
+            return false;
+        }
+
+        if (inputBuffer->readableBytes() < header_len + 4 + payload_len) {
+            return true;
+        }
+
+        const char* mask = data + header_len;
+        const char* payload = mask + 4;
+        std::string decoded;
+        decoded.resize(static_cast<size_t>(payload_len));
+        for (uint64_t i = 0; i < payload_len; ++i) {
+            decoded[static_cast<size_t>(i)] = payload[i] ^ mask[i % 4];
+        }
+        inputBuffer->retrieve(header_len + 4 + static_cast<size_t>(payload_len));
+
+        if (opcode == 0x8) {
+            sendWebSocketFrameInLoop(0x8, "");
+            handleClose();
+            return false;
+        }
+        if (opcode == 0x9) {
+            sendWebSocketFrameInLoop(0xA, decoded);
+            continue;
+        }
+        if (opcode == 0x2 || opcode == 0x1) {
+            submitImageInLoop(engine_ptr, std::move(decoded));
+            continue;
+        }
+    }
+    return true;
+}
+
+void Connection::submitImageInLoop(AsyncAIEngine* engine_ptr,
+                                   std::string&& image_data,
+                                   FrameContextPtr ctx) {
+    if (in_flight_requests_ >= kMaxInFlightRequests) {
+        sendProtocolErrorInLoop(0, "OVERLOADED", "Too many in-flight frames; slow down the sender.");
+        return;
+    }
+
+    if (!ctx) {
+        ctx = std::make_shared<FrameContext>();
+    }
+    ctx->t_parsed = LatencyProfiler::now();
+    ++in_flight_requests_;
+    engine_ptr->AnalyzeFrameAsync(ctx, std::move(image_data), weak_from_this());
+}
+
+void Connection::completeAnalysis(const std::string& json) {
+    std::weak_ptr<Connection> weakSelf = shared_from_this();
+    loop->runInLoop([weakSelf, json]() {
+        if (auto self = weakSelf.lock()) {
+            if (self->in_flight_requests_ > 0) {
+                --self->in_flight_requests_;
+            }
+            self->sendApplicationMessageInLoop(json);
+        }
+    });
+}
+
+void Connection::sendApplicationMessageInLoop(const std::string& json) {
+    if (protocol_ == ClientProtocol::WebSocket) {
+        sendWebSocketFrameInLoop(0x1, json);
+    } else {
+        sendInLoop(ResponseSerializer::frameTcpPayload(json));
+    }
+}
+
+void Connection::sendProtocolErrorInLoop(uint64_t frame_id,
+                                         const std::string& code,
+                                         const std::string& message) {
+    const std::string json = ResponseSerializer::errorJson(frame_id, code, message);
+    sendApplicationMessageInLoop(json);
+}
+
+void Connection::sendWebSocketFrameInLoop(uint8_t opcode, const std::string& payload) {
+    std::string frame;
+    frame.reserve(payload.size() + 10);
+    frame.push_back(static_cast<char>(0x80 | (opcode & 0x0f)));
+    if (payload.size() < 126) {
+        frame.push_back(static_cast<char>(payload.size()));
+    } else if (payload.size() <= 0xffff) {
+        frame.push_back(static_cast<char>(126));
+        appendBigEndian(frame, payload.size(), 2);
+    } else {
+        frame.push_back(static_cast<char>(127));
+        appendBigEndian(frame, payload.size(), 8);
+    }
+    frame.append(payload);
+    sendInLoop(frame);
 }
 
 // 发送接口可由任意线程调用，实际 I/O 始终回到 EventLoop 线程执行。
@@ -341,32 +581,38 @@ void Connection::sendInLoop(const std::string& msg){
 void Connection::handleWriteEvent(){
     if (channel->isWriting()) {
         std::cout << "[HandleWrite] Epoll 触发可写，准备搬运 Buffer 数据..." << std::endl;
-        // 取出 outputBuffer_ 中的积压数据继续写
-        ssize_t n;
-        do {
-            n = write(sock->fd(), outputBuffer->peek(), outputBuffer->readableBytes());
-        } while (n < 0 && errno == EINTR);
-        
-        if (n > 0) {
-            // 发送成功 n 字节，向后移动读游标readerIndex_
-            outputBuffer->retrieve(n);
-            std::cout << "[HandleWrite] 成功发送 " << n << " 字节，剩余积压 " << outputBuffer->readableBytes() << std::endl;
-            // 如果发完了，立刻注销 EPOLLOUT，防止死循环
-            if (outputBuffer->readableBytes() == 0) {
-                std::cout << "[HandleWrite] 数据发送完毕，注销 EPOLLOUT" << std::endl;
-                channel->disableWriting(); 
-                //如果此时连接准备结束但尚未结束，调用回调函数通知释放connection
-                if(state_ == kDisconnecting ){
-                    std::cout << "[Connection] 残留数据发送完毕，释放Connection" << std::endl;
-                    state_ = kDisconnected;
-                    if (deleteConnectionCallback) deleteConnectionCallback(sock);
-                }
+        while (outputBuffer->readableBytes() > 0) {
+            const ssize_t n = write(sock->fd(), outputBuffer->peek(), outputBuffer->readableBytes());
+            if (n > 0) {
+                outputBuffer->retrieve(static_cast<size_t>(n));
+                std::cout << "[HandleWrite] 成功发送 " << n
+                          << " 字节，剩余积压 " << outputBuffer->readableBytes() << std::endl;
+                continue;
             }
-        } else if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
-            std::cerr << "[HandleWrite] 写入失败: " << std::strerror(errno) << std::endl;
-            outputBuffer->retrieveAll();
-            channel->disableWriting();
+
+            if (n < 0 && errno == EINTR) {
+                continue;
+            }
+
+            if (n < 0 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+                break;
+            }
+
+            std::cerr << "[HandleWrite] 写入失败: "
+                      << (n < 0 ? std::strerror(errno) : "peer closed") << std::endl;
             handleClose();
+            return;
+        }
+
+        if (outputBuffer->readableBytes() == 0) {
+            std::cout << "[HandleWrite] 数据发送完毕，注销 EPOLLOUT" << std::endl;
+            channel->disableWriting(); 
+            //如果此时连接准备结束但尚未结束，调用回调函数通知释放connection
+            if(state_ == kDisconnecting ){
+                std::cout << "[Connection] 残留数据发送完毕，释放Connection" << std::endl;
+                state_ = kDisconnected;
+                if (deleteConnectionCallback) deleteConnectionCallback(sock);
+            }
         }
     }
 }

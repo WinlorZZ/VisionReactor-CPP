@@ -25,6 +25,7 @@ find_package(Threads REQUIRED)
 # 查找系统中安装的 gRPC 和 Protobuf
 find_package(Protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
 # 查找OpenCV
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -62,6 +63,8 @@ target_link_libraries(server_core
     Threads::Threads          # ThreadPool 需要的 pthread
     gRPC::grpc++              # gRPC 核心库
     protobuf::libprotobuf     # Protobuf 核心库
+    OpenSSL::SSL
+    OpenSSL::Crypto
     ${OpenCV_LIBS}            # OpenCV 库
 )
 
@@ -78,6 +81,7 @@ add_executable(ThreadPool_bench tests/ThreadPool_bench.cpp)
 add_executable(connection_test tests/connection_test.cpp)
 add_executable(h264_demuxer_test tests/h264_demuxer_test.cpp)
 add_executable(event_loop_test tests/event_loop_test.cpp)
+add_executable(response_serializer_test tests/response_serializer_test.cpp)
 # 测试程序同样链接 server_core，并额外链接 GTest 的 main 函数入口
 target_link_libraries(buffer_test server_core GTest::gtest_main)
 target_link_libraries(ThreadPool_test server_core GTest::gtest_main)
@@ -86,6 +90,7 @@ target_link_libraries(ThreadPool_bench server_core GTest::gtest_main)
 target_link_libraries(connection_test server_core GTest::gtest_main)
 target_link_libraries(h264_demuxer_test server_core GTest::gtest_main)
 target_link_libraries(event_loop_test server_core GTest::gtest_main)
+target_link_libraries(response_serializer_test server_core GTest::gtest_main)
 
 enable_testing()
 add_test(NAME buffer_test COMMAND buffer_test)
@@ -93,3 +98,4 @@ add_test(NAME thread_pool_test COMMAND ThreadPool_test)
 add_test(NAME connection_test COMMAND connection_test)
 add_test(NAME h264_demuxer_test COMMAND h264_demuxer_test)
 add_test(NAME event_loop_test COMMAND event_loop_test)
+add_test(NAME response_serializer_test COMMAND response_serializer_test)
