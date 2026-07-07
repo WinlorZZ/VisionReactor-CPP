@@ -22,8 +22,12 @@ Server::Server(EventLoop *loop , const std::string& ai_target ) : loop(loop), ac
     // 设置acceptor的消息回调函数，让他以这个方式通知自己
     std::function<void(Socket*)> cb = std::bind(&Server::handleNewConnection, this, std::placeholders::_1);
     acceptor->setNewConnectionCallback(cb);
-    // 设置连接的对端IP和本地端口
-    auto gchannel = grpc::CreateChannel(ai_target, grpc::InsecureChannelCredentials());
+    // 设置连接的对端IP和本地端口。显式禁用 HTTP proxy，避免环境变量
+    // HTTP_PROXY/http_proxy 把内网 gRPC 流量转到本地代理端口。
+    grpc::ChannelArguments channel_args;
+    channel_args.SetInt(GRPC_ARG_ENABLE_HTTP_PROXY, 0);
+    auto gchannel = grpc::CreateCustomChannel(
+        ai_target, grpc::InsecureChannelCredentials(), channel_args);
     // auto gchannel = grpc::CreateChannel("172.30.131.156:50051", grpc::InsecureChannelCredentials());
     aiengine = std::make_unique<AsyncAIEngine>(gchannel, threadPool);
 }

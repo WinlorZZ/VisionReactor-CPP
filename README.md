@@ -125,16 +125,16 @@ Worker 线程需要操作连接时，通过 `queueInLoop` 回投 EventLoop。
 
 ### 环境依赖
 
-| 组件 | 版本要求 |
-|------|---------|
-| OS | Ubuntu 20.04+ / WSL2 |
-| GCC | 9.0+ (支持 C++17) |
-| CMake | 3.10+ |
-| gRPC | 1.x |
-| Protobuf | 3.x |
-| OpenCV | 4.x |
-| OpenSSL | 1.1+ / 3.x |
-| pthread | 系统自带 |
+| 组件     | 版本要求             |
+| -------- | -------------------- |
+| OS       | Ubuntu 20.04+ / WSL2 |
+| GCC      | 9.0+ (支持 C++17)    |
+| CMake    | 3.10+                |
+| gRPC     | 1.x                  |
+| Protobuf | 3.x                  |
+| OpenCV   | 4.x                  |
+| OpenSSL  | 1.1+ / 3.x           |
+| pthread  | 系统自带             |
 
 ### 编译
 
@@ -150,6 +150,7 @@ make build
 ```
 
 编译产物：
+
 - `server` — 主程序
 - `buffer_test`、`ThreadPool_test`、`connection_test` 等 — 单元测试
 - `Buffer_bench`、`ThreadPool_bench` — 性能基准
@@ -378,14 +379,14 @@ message FrameResponse {
 
 每帧携带 `FrameContext`，记录以下时间戳：
 
-| 探针 | 位置 | 含义 |
-|------|------|------|
-| `t_start` | Connection::handleReadEvent | TCP 数据到达 |
-| `t_parsed` | Connection::business | TCP/WebSocket 拆包完成 |
-| `t_grpc_sent` | AsyncAIEngine | gRPC 请求已发出 |
-| `t3_python_cost_us` | Python 返回 | AI 纯推理耗时 |
-| `t_grpc_recv` | CompletionQueue 回调 | gRPC 回执到达 |
-| `t_finish` | CQ 结果任务 | 结果处理完成 |
+| 探针                  | 位置                        | 含义                   |
+| --------------------- | --------------------------- | ---------------------- |
+| `t_start`           | Connection::handleReadEvent | TCP 数据到达           |
+| `t_parsed`          | Connection::business        | TCP/WebSocket 拆包完成 |
+| `t_grpc_sent`       | AsyncAIEngine               | gRPC 请求已发出        |
+| `t3_python_cost_us` | Python 返回                 | AI 纯推理耗时          |
+| `t_grpc_recv`       | CompletionQueue 回调        | gRPC 回执到达          |
+| `t_finish`          | CQ 结果任务                 | 结果处理完成           |
 
 ## 技术要点
 

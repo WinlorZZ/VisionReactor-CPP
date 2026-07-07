@@ -4,6 +4,7 @@
 #include <memory>
 #include <arpa/inet.h>
 #include <cstddef>
+#include <cstdint>
 #include "LatencyProfiler.h"
 // #include <gtest/gtest_prod.h>
 
@@ -99,6 +100,8 @@ private:
 
     ClientProtocol protocol_ = ClientProtocol::TcpLengthPrefixed;
     bool websocket_handshake_done_ = false;
+    uint8_t websocket_fragment_opcode_ = 0;
+    std::string websocket_fragment_buffer_;
     size_t in_flight_requests_ = 0;
     static constexpr size_t kMaxInFlightRequests = 2;
     static constexpr size_t kMaxFrameBytes = 10 * 1024 * 1024;

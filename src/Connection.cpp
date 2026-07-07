@@ -410,6 +410,7 @@ bool Connection::processWebSocketFrames(AsyncAIEngine* engine_ptr) {
         const char* data = inputBuffer->peek();
         const uint8_t b0 = static_cast<uint8_t>(data[0]);
         const uint8_t b1 = static_cast<uint8_t>(data[1]);
+        const bool fin = (b0 & 0x80) != 0;
         const uint8_t opcode = b0 & 0x0f;
         const bool masked = (b1 & 0x80) != 0;
         uint64_t payload_len = b1 & 0x7f;
@@ -457,8 +458,43 @@ bool Connection::processWebSocketFrames(AsyncAIEngine* engine_ptr) {
             sendWebSocketFrameInLoop(0xA, decoded);
             continue;
         }
+
+        if (opcode == 0x0) {
+            if (websocket_fragment_opcode_ == 0) {
+                sendWebSocketFrameInLoop(0x8, "");
+                handleClose();
+                return false;
+            }
+            if (websocket_fragment_buffer_.size() + decoded.size() > kMaxFrameBytes) {
+                sendWebSocketFrameInLoop(0x8, "");
+                handleClose();
+                return false;
+            }
+            websocket_fragment_buffer_.append(decoded);
+            if (fin) {
+                uint8_t message_opcode = websocket_fragment_opcode_;
+                websocket_fragment_opcode_ = 0;
+                std::string complete_message;
+                complete_message.swap(websocket_fragment_buffer_);
+                if (message_opcode == 0x2 || message_opcode == 0x1) {
+                    submitImageInLoop(engine_ptr, std::move(complete_message));
+                }
+            }
+            continue;
+        }
+
         if (opcode == 0x2 || opcode == 0x1) {
-            submitImageInLoop(engine_ptr, std::move(decoded));
+            if (websocket_fragment_opcode_ != 0) {
+                sendWebSocketFrameInLoop(0x8, "");
+                handleClose();
+                return false;
+            }
+            if (fin) {
+                submitImageInLoop(engine_ptr, std::move(decoded));
+            } else {
+                websocket_fragment_opcode_ = opcode;
+                websocket_fragment_buffer_ = std::move(decoded);
+            }
             continue;
         }
     }

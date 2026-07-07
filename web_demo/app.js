@@ -49,6 +49,29 @@ function updateInflight() {
   metrics.inflight.textContent = String(inFlight);
 }
 
+function getVideoContentRect() {
+  const stageRect = video.parentElement.getBoundingClientRect();
+  const videoWidth = video.videoWidth || 16;
+  const videoHeight = video.videoHeight || 9;
+  const stageAspect = stageRect.width / stageRect.height;
+  const videoAspect = videoWidth / videoHeight;
+
+  let width = stageRect.width;
+  let height = stageRect.height;
+  let left = 0;
+  let top = 0;
+
+  if (stageAspect > videoAspect) {
+    width = height * videoAspect;
+    left = (stageRect.width - width) / 2;
+  } else {
+    height = width / videoAspect;
+    top = (stageRect.height - height) / 2;
+  }
+
+  return { left, top, width, height };
+}
+
 function resizeCanvases() {
   const w = video.videoWidth || 1280;
   const h = video.videoHeight || 720;
@@ -56,28 +79,67 @@ function resizeCanvases() {
   overlay.height = h;
   capture.width = w;
   capture.height = h;
+  positionOverlay();
   drawDetections();
 }
 
+function positionOverlay() {
+  const rect = getVideoContentRect();
+  overlay.style.left = `${rect.left}px`;
+  overlay.style.top = `${rect.top}px`;
+  overlay.style.width = `${rect.width}px`;
+  overlay.style.height = `${rect.height}px`;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeDetection(det) {
+  const w = Number(det.w ?? det.width ?? 0);
+  const h = Number(det.h ?? det.height ?? 0);
+  const cx = Number(det.x ?? 0);
+  const cy = Number(det.y ?? 0);
+  return {
+    label: String(det.class ?? det.class_name ?? "object"),
+    confidence: Number(det.confidence ?? 0),
+    x: cx - w / 2,
+    y: cy - h / 2,
+    w,
+    h,
+  };
+}
+
 function drawDetections() {
+  positionOverlay();
   overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
   overlayCtx.lineWidth = Math.max(2, overlay.width / 480);
   overlayCtx.font = `${Math.max(14, overlay.width / 70)}px system-ui`;
   overlayCtx.textBaseline = "top";
 
-  for (const det of latestDetections) {
-    const x = det.x - det.w / 2;
-    const y = det.y - det.h / 2;
+  for (const raw of latestDetections) {
+    const det = normalizeDetection(raw);
+    if (!Number.isFinite(det.x) || !Number.isFinite(det.y) || det.w <= 0 || det.h <= 0) {
+      continue;
+    }
+
+    const x = clamp(det.x, 0, overlay.width);
+    const y = clamp(det.y, 0, overlay.height);
+    const w = clamp(det.w, 0, overlay.width - x);
+    const h = clamp(det.h, 0, overlay.height - y);
+    if (w <= 0 || h <= 0) continue;
+
     overlayCtx.strokeStyle = "#8fd14f";
     overlayCtx.fillStyle = "rgba(20, 24, 18, 0.82)";
-    overlayCtx.strokeRect(x, y, det.w, det.h);
+    overlayCtx.strokeRect(x, y, w, h);
 
-    const label = `${det.class} ${(det.confidence * 100).toFixed(0)}%`;
+    const label = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
     const labelWidth = overlayCtx.measureText(label).width + 12;
     const labelY = Math.max(0, y - 24);
-    overlayCtx.fillRect(x, labelY, labelWidth, 22);
+    const labelX = clamp(x, 0, Math.max(0, overlay.width - labelWidth));
+    overlayCtx.fillRect(labelX, labelY, labelWidth, 22);
     overlayCtx.fillStyle = "#f4f7ef";
-    overlayCtx.fillText(label, x + 6, labelY + 3);
+    overlayCtx.fillText(label, labelX + 6, labelY + 3);
   }
 }
 
@@ -135,6 +197,9 @@ function connect() {
     }
     setMessage("");
     updateMetrics(payload);
+    if (latestDetections.length === 0) {
+      setMessage("已收到推理结果，本帧没有检测框");
+    }
   });
 }
 
@@ -183,7 +248,8 @@ fileInput.addEventListener("change", () => {
 });
 
 video.addEventListener("loadedmetadata", resizeCanvases);
-window.addEventListener("resize", drawDetections);
+video.addEventListener("playing", resizeCanvases);
+window.addEventListener("resize", resizeCanvases);
 
 connectButton.addEventListener("click", connect);
 playButton.addEventListener("click", async () => {
