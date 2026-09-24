@@ -335,8 +335,9 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
     
     while (inputBuffer->readableBytes() >= 4) {
         // 包头解析
+        // 注意：这里位于 T1 计时区间内，热路径上不做任何同步日志输出，
+        // 否则日志 flush 会直接计入网关侧延迟。
         uint32_t body_len = inputBuffer->peekInt32();
-        std::cout << "[Debug] 收到 Header，解析出的 Body 长度为: " << body_len << std::endl;
         if (body_len <= 0 || body_len > kMaxFrameBytes) {
             // std::cerr << "[-] 致命错误：非法的数据包长度 " << body_len << "，强制断开连接！\n";
             handleClose();
@@ -344,7 +345,6 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
         }
         if (!current_frame_ctx_) {
             current_frame_ctx_ = std::make_shared<FrameContext>();
-            std::cout << "[Trace] 新帧开始接收 -> TraceID: " << current_frame_ctx_->trace_id << std::endl;
         }
 
         if (inputBuffer->readableBytes() >= 4 + body_len) {
@@ -352,19 +352,12 @@ void Connection::business(AsyncAIEngine* engine_ptr) {
             std::string message = inputBuffer->retrieveAsString(body_len);
             // 计时器：T1结束
             current_frame_ctx_->t_parsed = LatencyProfiler::now();
-            std::cout << "[Debug] 数据已齐，准备调用 AI 引擎..." << std::endl;
-            
-            /* 处理业务 */ 
-            uint64_t current_frame_id = current_frame_ctx_->trace_id;
-            std::cout << "[协议层] 成功切包！提取到完整图像载荷，大小: " 
-                        << message.size() << " bytes -> FrameID: " << current_frame_id << "\n";
-            // 发送图片数据
+
+            // 发送图片数据（帧号即 TraceID，结果侧的日志足以对应到具体帧）
             submitImageInLoop(engine_ptr, std::move(message), current_frame_ctx_);
             // 发送结束后重置上下文
             current_frame_ctx_.reset();
         }else{// 有包头但数据未传完，退出循环并等待下一次 Epoll 触发可读事件
-            std::cout << "[Debug] 数据未齐，当前缓冲区: " << inputBuffer->readableBytes() 
-                      << " 字节，等待下一波..." << std::endl;
             break;
         }
     }

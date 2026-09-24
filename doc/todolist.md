@@ -302,6 +302,11 @@ JPEG → C++ TCP → gRPC → Python YOLO → C++ → TCP JSON
 
 # 阶段 3：视频 Web Demo
 
+> 落地结果与本节原计划不同：最终没有使用 Python 侧的 `bridge.py`，而是由 C++ 网关
+> 直接实现 WebSocket Upgrade 与帧解析（见 `src/Connection.cpp` 的
+> `tryHandleWebSocketHandshake` / `processWebSocketFrames`），前端收敛为
+> `web_demo/{index.html,app.js,styles.css}`。本节保留为当时的方案记录。
+
 这一阶段主要由 AI 实现，你负责看懂协议和运行链路。
 
 ## 3.1 WebSocket → TCP Bridge 🤖

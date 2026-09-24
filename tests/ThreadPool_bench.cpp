@@ -30,5 +30,7 @@ TEST(ThreadPoolBenchmark, TaskSchedulingOverhead) {
     double tps = (static_cast<double>(NUM_TASKS) / ms) * 1000.0;
 
     std::cout << "[ VISION REACTOR ] ThreadPool TPS (Tasks Per Second): " << tps << " tasks/s\n";
-    std::cout << "[ VISION REACTOR ] Average Scheduling Latency: " << (ms * 1000.0 / NUM_TASKS) << " us/task\n";
+    // 说明：这里是「总墙钟时间 / 任务数」的均摊值，用于描述吞吐，
+    // 不等于单个任务从入队到开始的排队延迟。
+    std::cout << "[ VISION REACTOR ] Amortized wall time per task: " << (ms * 1000.0 / NUM_TASKS) << " us/task\n";
 }

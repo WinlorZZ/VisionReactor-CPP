@@ -23,7 +23,9 @@ file(GLOB SRC_FILES "src/*.cpp")
 # 4. 查找系统依赖包 (Threads, Protobuf, gRPC,Linux 下必须链接 pthread)
 find_package(Threads REQUIRED)
 # 查找系统中安装的 gRPC 和 Protobuf
-find_package(Protobuf CONFIG REQUIRED)
+# Protobuf 用默认查找方式：源码编译/vcpkg 提供 config 模式，apt 的 libprotobuf-dev
+# 只提供 CMake 模块模式，写死 CONFIG 会在 Ubuntu 24.04 上直接配置失败。
+find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 # 查找OpenCV

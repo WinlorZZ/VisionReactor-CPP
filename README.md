@@ -125,16 +125,16 @@ Worker 线程需要操作连接时，通过 `queueInLoop` 回投 EventLoop。
 
 ### 环境依赖
 
-| 组件 | 版本要求 |
-|------|---------|
-| OS | Ubuntu 20.04+ / WSL2 |
-| GCC | 9.0+ (支持 C++17) |
-| CMake | 3.10+ |
-| gRPC | 1.x |
-| Protobuf | 3.x |
-| OpenCV | 4.x |
-| OpenSSL | 1.1+ / 3.x |
-| pthread | 系统自带 |
+| 组件     | 版本要求             | Ubuntu 包                                                          |
+| -------- | -------------------- | ------------------------------------------------------------------ |
+| OS       | Ubuntu 22.04+ / WSL2 | —                                                                  |
+| GCC      | 11+ (支持 C++17)     | `build-essential`                                                  |
+| CMake    | 3.16+                | `cmake`                                                            |
+| gRPC     | 1.51+                | `libgrpc++-dev`                                                    |
+| Protobuf | 3.21+                | `libprotobuf-dev protobuf-compiler protobuf-compiler-grpc`         |
+| OpenCV   | 4.6+                 | `libopencv-dev`                                                    |
+| OpenSSL  | 3.x                  | `libssl-dev`                                                       |
+| pthread  | 系统自带             | —                                                                  |
 
 ### 编译
 
@@ -142,14 +142,18 @@ Worker 线程需要操作连接时，通过 `queueInLoop` 回投 EventLoop。
 git clone https://github.com/WinlorZZ/VisionReactor-CPP.git
 cd VisionReactor-CPP
 
-# 安装系统依赖 (以 Ubuntu 为例)
-sudo apt install build-essential cmake libopencv-dev libssl-dev
-# gRPC/Protobuf 需从源码编译或通过 vcpkg 安装，参考 grpc.io 文档
+# 安装系统依赖 (Ubuntu 22.04/24.04 直接用 apt 即可)
+sudo apt install -y build-essential cmake libgrpc++-dev protobuf-compiler-grpc \
+  libprotobuf-dev protobuf-compiler libopencv-dev libssl-dev
 
 make build
 ```
 
+> 也可以使用 vcpkg 或源码编译的 gRPC/Protobuf。CMake 对 Protobuf 使用默认查找方式，
+> 同时兼容 apt 的模块模式与源码/vcpkg 的 config 模式。
+
 编译产物：
+
 - `server` — 主程序
 - `buffer_test`、`ThreadPool_test`、`connection_test` 等 — 单元测试
 - `Buffer_bench`、`ThreadPool_bench` — 性能基准
@@ -157,10 +161,10 @@ make build
 ### 运行
 
 ```bash
-# 1. 启动 Python AI 推理节点
+# 1. 启动 Python AI 推理节点 (真实 YOLOv8 推理)
 cd python_ai
-pip install grpcio grpcio-tools protobuf opencv-python torch ultralytics
-python Pserver.py
+pip install grpcio grpcio-tools protobuf numpy opencv-python torch ultralytics
+python Pserver.py            # 监听 50051
 
 # 2. 启动 C++ 网关 (另开终端)
 cd build
@@ -168,6 +172,16 @@ cd build
 ```
 
 默认监听地址为 `127.0.0.1:8888`。浏览器演示和 TCP 客户端都连接这个端口。
+
+Python 端的 `_pb2` 文件不纳入版本管理：`Pserver.py` 与 `dummy_server.py` 启动时会用
+`grpc_tools.protoc` 直接编译 `proto/game_ai.proto`，所以不需要手动执行 protoc。
+
+只想联调 C++ 侧网络、异步与延迟探针时，可以用不依赖 torch/OpenCV 的模拟节点：
+
+```bash
+cd python_ai
+python dummy_server.py --port 50051 --latency-ms 20 --boxes 2
+```
 
 ### 浏览器视频演示
 
@@ -378,14 +392,14 @@ message FrameResponse {
 
 每帧携带 `FrameContext`，记录以下时间戳：
 
-| 探针 | 位置 | 含义 |
-|------|------|------|
-| `t_start` | Connection::handleReadEvent | TCP 数据到达 |
-| `t_parsed` | Connection::business | TCP/WebSocket 拆包完成 |
-| `t_grpc_sent` | AsyncAIEngine | gRPC 请求已发出 |
-| `t3_python_cost_us` | Python 返回 | AI 纯推理耗时 |
-| `t_grpc_recv` | CompletionQueue 回调 | gRPC 回执到达 |
-| `t_finish` | CQ 结果任务 | 结果处理完成 |
+| 探针                  | 位置                        | 含义                   |
+| --------------------- | --------------------------- | ---------------------- |
+| `t_start`           | Connection::handleReadEvent | TCP 数据到达           |
+| `t_parsed`          | Connection::business        | TCP/WebSocket 拆包完成 |
+| `t_grpc_sent`       | AsyncAIEngine               | gRPC 请求已发出        |
+| `t3_python_cost_us` | Python 返回                 | AI 纯推理耗时          |
+| `t_grpc_recv`       | CompletionQueue 回调        | gRPC 回执到达          |
+| `t_finish`          | CQ 结果任务                 | 结果处理完成           |
 
 ## 技术要点
 
@@ -397,3 +411,19 @@ message FrameResponse {
 - **Connection 弱引用回传**：AI 回调只保存 `weak_ptr<Connection>`，客户端断开后结果会自然丢弃，不延长连接生命周期
 - **ET 写排空**：`handleWriteEvent()` 循环写到 `EAGAIN/EWOULDBLOCK`，避免边缘触发模式下残留数据不再触发写事件
 - **结果序列化隔离**：`ResponseSerializer` 独立负责 JSON、错误响应和 TCP 长度前缀封包，便于后续替换为 protobuf binary
+- **热路径不做同步日志**：T1 计时区间内不写 `std::cout`（`std::endl` 每次 flush 直接计入网关侧延迟），实测去掉后网关侧处理由 0.93 ms 降至 0.08 ms
+
+## 实测数据
+
+完整的环境、方法、结果与结论边界见 [`doc/Verification.md`](doc/Verification.md)。摘要（AMD Ryzen 7 5700X / WSL2 / Release 构建）：
+
+| 项 | 结果 |
+| --- | --- |
+| 单元测试 | 6 个测试套件、15 个 GTest 用例全部通过；ASan + UBSan 无报告 |
+| Buffer 连续读写 | 约 50 GiB/s（10 万轮 × 512 KiB，容量不膨胀） |
+| 线程池吞吐 | 约 5.5 万 tasks/s（10 万任务 / 8 工作线程） |
+| 端到端（模拟 AI 节点，44 KB JPEG，单连接） | 网关侧处理中位数 76 µs、p95 103 µs |
+| 背压 | 连发 30 帧：2 帧受理、28 帧返回 `OVERLOADED` |
+
+这些数字是**单机单连接**的观测值：Buffer/线程池是内存侧基准（不等于网卡吞吐），
+端到端用模拟节点是为了把网关与 gRPC 开销从推理耗时里分离出来；未做多客户端并发压测，也没有 p99 与长时间稳定性曲线。

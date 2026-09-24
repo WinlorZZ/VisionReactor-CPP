@@ -100,21 +100,14 @@ void AsyncAIEngine::AsyncCompleteRpc(){
             std::weak_ptr<Connection> conn_copy = call->conn;
 
             threadpool->add([reply_copy, ctx_copy, conn_copy]() {
-                std::cout << "[Worker Thread] [+] 拿到 AI 回调结果！Frame ID: " 
-                          << reply_copy.frame_id() 
-                          << " | 推理耗时: " << reply_copy.inference_latency_us() / 1000.0 << " ms\n"
-                          << "                -> 正在准备将结果发回客户端...\n";
-                
-                for(int i = 0; i < reply_copy.boxes_size(); i++){
-                    const auto& box = reply_copy.boxes(i);
-                    std::cout << "                -> 锁定目标: [" << box.class_name() << "] "
-                              << "置信度: " << box.confidence()
-                              << " | 中心点: (" << box.x() << ", " << box.y() << ")"
-                              << " | 宽高: " << box.width() << "x" << box.height() << "\n";
-                }
-
                 // 【探针注入：T4 终点】准备发回客户端前的一瞬间
                 ctx_copy->t_finish = LatencyProfiler::now();
+
+                // 日志放在探针之后，避免输出开销被计入 T4。
+                // 使用 '\n' 而不是 std::endl：避免每条结果日志都触发一次 flush。
+                std::cout << "[Worker] Frame " << reply_copy.frame_id()
+                          << " boxes=" << reply_copy.boxes_size()
+                          << " infer=" << reply_copy.inference_latency_us() / 1000.0 << "ms\n";
 
                 // 打印终极性能 CT 报告！
                 AsyncAIEngine::PrintLatencyLog(ctx_copy);

@@ -1,59 +1,106 @@
-import grpc
+import os
+import sys
 import time
+import argparse
 from concurrent import futures
 
-# 导入刚才 protoc 生成的契约文件
-import game_ai_pb2
-import game_ai_pb2_grpc
+# ==========================================
+# 1. 契约文件 JIT 动态编译 (与 Pserver.py 同一套流程)
+# ==========================================
+# 目的：本文件不依赖 torch / opencv，只依赖 grpcio，用于在没有 GPU 或
+# 未安装推理依赖的机器上联调 C++ 网关的异步链路与延迟探针。
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+proto_dir = os.path.join(project_root, "proto")
+proto_file = os.path.join(proto_dir, "game_ai.proto")
 
-# 继承生成的 Servicer 基类，实现我们定义的 RPC 接口
+if not os.path.exists(proto_file):
+    print(f"[-] 致命错误：找不到契约文件 {proto_file}")
+    sys.exit(1)
+
+try:
+    from grpc_tools import protoc
+except ImportError:
+    print("[-] 缺少依赖：请先执行 pip install grpcio grpcio-tools")
+    sys.exit(1)
+
+print(f"[Proto JIT] 正在编译契约: {proto_file}")
+rc = protoc.main((
+    '',
+    f'-I{proto_dir}',
+    f'--python_out={current_dir}',
+    f'--grpc_python_out={current_dir}',
+    proto_file,
+))
+if rc != 0:
+    print(f"[-] 契约编译失败，protoc 返回 {rc}")
+    sys.exit(1)
+print("[Proto JIT] 契约编译完毕")
+
+# ==========================================
+# 2. 导入与服务实现
+# ==========================================
+import grpc                      # noqa: E402
+import game_ai_pb2               # noqa: E402
+import game_ai_pb2_grpc          # noqa: E402
+
+# 每个假检测框：(中心x, 中心y, 宽, 高, 类别, 置信度)
+FAKE_BOXES = [
+    (640.0, 420.0, 180.0, 420.0, "person", 0.91),
+    (300.0, 380.0, 120.0, 260.0, "person", 0.78),
+]
+
+
 class VisionAIServicer(game_ai_pb2_grpc.VisionAIServicer):
-    
-    # 这个函数名和参数，必须和 .proto 文件里定义的完全一致
+    def __init__(self, latency_ms: float, boxes: int):
+        self.latency_ms = latency_ms
+        self.boxes = boxes
+
     def AnalyzeFrame(self, request, context):
-        # 1. 打印收到的请求日志，证明网络打通
-        print(f"[*] Received Request -> Frame ID: {request.frame_id}, Timestamp: {request.timestamp_ms}")
-        print(f"[*] Image Payload Size: {len(request.image_data)} bytes")
+        t3_start = time.perf_counter()
 
-        # 2. 模拟 YOLO 模型前向传播的推理耗时 (比如 50 毫秒)
-        # 在单体架构中，这 50ms 会卡死整个网络循环，但在我们的微服务中，C++ 是完全无感的
-        time.sleep(0.05)
+        # 用可控 sleep 模拟推理耗时，便于观察 C++ 侧 T3/gRPC 分段延迟
+        time.sleep(self.latency_ms / 1000.0)
 
-        # 3. 构造伪造的判定结果 (Dummy Data)
-        # 假装识别出了 1P (左边，优势) 和 2P (右边，劣势)
-        p1 = game_ai_pb2.PlayerState(x=100.0, y=200.0, width=50.0, height=120.0, hp_percent=90, drive_gauge=6)
-        p2 = game_ai_pb2.PlayerState(x=300.0, y=200.0, width=50.0, height=120.0, hp_percent=30, drive_gauge=2)
+        response = game_ai_pb2.FrameResponse()
+        response.frame_id = request.frame_id          # 必须原样回传，异步回调靠它对齐
+        for x, y, w, h, name, conf in FAKE_BOXES[: self.boxes]:
+            bbox = response.boxes.add()
+            bbox.x = x
+            bbox.y = y
+            bbox.width = w
+            bbox.height = h
+            bbox.class_name = name
+            bbox.confidence = conf
 
-        # 4. 组装 Response 契约并返回
-        response = game_ai_pb2.FrameResponse(
-            frame_id=request.frame_id,  # 必须原样奉还，否则 C++ 异步回调会错乱
-            p1_state=p1,
-            p2_state=p2,
-            inference_latency_ms=50
-        )
+        cost_us = int((time.perf_counter() - t3_start) * 1_000_000)
+        response.inference_latency_us = cost_us
 
-        print(f"[+] Successfully responded to Frame ID: {request.frame_id}\n")
+        print(f"[Dummy AI] frame={request.frame_id} payload={len(request.image_data)}B "
+              f"boxes={len(response.boxes)} cost={cost_us / 1000.0:.2f}ms")
         return response
 
-def serve():
-    # 1. 配置 gRPC 服务器的线程池 (这里给 4 个 Worker 线程，模拟并发处理能力)
+
+def serve(port: int, latency_ms: float, boxes: int):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
-    
-    # 2. 将我们的处理逻辑挂载到服务器底座上
-    game_ai_pb2_grpc.add_VisionAIServicer_to_server(VisionAIServicer(), server)
-    
-    # 3. 绑定监听端口 (50051 是 gRPC 默认的经典测试端口)
-    server.add_insecure_port('[::]:50051')
-    
-    print(" Vision AI Dummy Server is running on port 50051...")
-    
-    # 4. 启动并阻塞主线程，保持服务器常驻
+    game_ai_pb2_grpc.add_VisionAIServicer_to_server(
+        VisionAIServicer(latency_ms, boxes), server)
+    server.add_insecure_port(f'[::]:{port}')
     server.start()
-    try:
-        server.wait_for_termination()
-    except  KeyboardInterrupt:
-        server.stop(0) # 0 表示立即停止
-        print("[+] AI 服务已退出")
+    print(f"[Dummy AI] gRPC 服务已启动: 0.0.0.0:{port} "
+          f"(模拟推理 {latency_ms}ms, 返回 {boxes} 个框)")
+    server.wait_for_termination()
+
 
 if __name__ == '__main__':
-    serve()
+    parser = argparse.ArgumentParser(description="VisionReactor 模拟 AI 节点")
+    parser.add_argument('--port', type=int, default=50051)
+    parser.add_argument('--latency-ms', type=float, default=20.0,
+                        help='模拟单帧推理耗时 (毫秒)')
+    parser.add_argument('--boxes', type=int, default=2, choices=[0, 1, 2],
+                        help='返回的假检测框数量')
+    args = parser.parse_args()
+    try:
+        serve(args.port, args.latency_ms, args.boxes)
+    except KeyboardInterrupt:
+        print("\n[Dummy AI] 已退出")
