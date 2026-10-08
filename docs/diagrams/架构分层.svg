@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700"
+     font-family="'Segoe UI','Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5a6672"/>
+    </marker>
+    <style>
+      .zone   { stroke-width:1.5; }
+      .lane   { stroke-width:1.2; stroke-dasharray:6 4; }
+      .box    { fill:#ffffff; stroke:#8f9db0; stroke-width:1.4; }
+      .ttl    { font-size:14.5px; font-weight:600; fill:#1b2733; }
+      .sub    { font-size:11.5px; fill:#5d6b7a; }
+      .zttl   { font-size:15px; font-weight:700; fill:#39485a; }
+      .lttl   { font-size:12.5px; font-weight:600; fill:#4a6b4a; }
+      .lttl2  { font-size:12.5px; font-weight:600; fill:#8a6a2a; }
+      .edge   { stroke:#5a6672; stroke-width:1.7; fill:none; marker-end:url(#arw); }
+      .edge9  { stroke:#5a6672; stroke-width:1.7; fill:none; marker-end:url(#arw); }
+      .hopbg  { fill:#3f4d5c; }
+      .hop    { font-size:11px; font-weight:700; fill:#ffffff; text-anchor:middle; }
+      .lgnd   { font-size:11.5px; fill:#4c5866; }
+    </style>
+  </defs>
+
+  <text x="24" y="34" font-size="19" font-weight="700" fill="#16212e">VisionReactor-CPP 架构概览</text>
+  <text x="24" y="55" font-size="12.5" fill="#5d6b7a">一帧从客户端到 YOLO 再回到客户端；圆圈里的数字与下文「一帧的九跳」一一对应</text>
+
+  <!-- 客户端 -->
+  <rect class="zone" x="20" y="120" width="182" height="380" rx="12" fill="#eef5fc" stroke="#c9def2"/>
+  <text class="zttl" x="111" y="146" text-anchor="middle">客户端</text>
+  <rect class="box" x="36" y="196" width="150" height="68" rx="9"/>
+  <text class="ttl" x="111" y="222" text-anchor="middle">浏览器</text>
+  <text class="sub" x="111" y="240" text-anchor="middle">video 抽帧为 JPEG</text>
+  <text class="sub" x="111" y="255" text-anchor="middle">WebSocket 二进制帧</text>
+  <rect class="box" x="36" y="312" width="150" height="68" rx="9"/>
+  <text class="ttl" x="111" y="338" text-anchor="middle">TCP 客户端</text>
+  <text class="sub" x="111" y="356" text-anchor="middle">tools/image_client.py</text>
+  <text class="sub" x="111" y="371" text-anchor="middle">4 字节长度前缀</text>
+
+  <!-- 网关侧 外框 -->
+  <rect class="zone" x="216" y="82" width="804" height="576" rx="14" fill="#fbfcfb" stroke="#cfd8e0"/>
+  <text class="zttl" x="238" y="110">网关侧</text>
+  <text class="sub" x="300" y="110">本仓库编译出的 C++ 程序 · 只搬运与计时，不碰像素</text>
+
+  <!-- EventLoop 线程带 -->
+  <rect class="lane" x="234" y="124" width="768" height="212" rx="10" fill="#eaf5ea" stroke="#b9d8b9"/>
+  <text class="lttl" x="250" y="146">EventLoop 线程（单线程，绝不能被阻塞）</text>
+
+  <rect class="box" x="250" y="158" width="152" height="58" rx="8"/>
+  <text class="ttl" x="326" y="182" text-anchor="middle">Epoll / EventLoop</text>
+  <text class="sub" x="326" y="200" text-anchor="middle">epoll_wait 边缘触发</text>
+
+  <rect class="box" x="452" y="158" width="152" height="58" rx="8"/>
+  <text class="ttl" x="528" y="182" text-anchor="middle">Connection</text>
+  <text class="sub" x="528" y="200" text-anchor="middle">readv 双缓冲读空内核缓冲</text>
+
+  <rect class="box" x="654" y="158" width="152" height="58" rx="8"/>
+  <text class="ttl" x="730" y="182" text-anchor="middle">Buffer</text>
+  <text class="sub" x="730" y="200" text-anchor="middle">拆包 + 解掩码</text>
+
+  <rect class="box" x="856" y="158" width="130" height="58" rx="8"/>
+  <text class="ttl" x="921" y="182" text-anchor="middle">AsyncAIEngine</text>
+  <text class="sub" x="921" y="200" text-anchor="middle">发起异步 RPC 后返回</text>
+
+  <rect class="box" x="250" y="242" width="360" height="72" rx="8"/>
+  <text class="ttl" x="430" y="268" text-anchor="middle">写回 socket</text>
+  <text class="sub" x="430" y="287" text-anchor="middle">TCP：4 字节长度前缀 + JSON</text>
+  <text class="sub" x="430" y="302" text-anchor="middle">WebSocket：text 帧 + JSON</text>
+
+  <text class="sub" x="628" y="286">④ 之前做在途检查：每连接在途 ≤ 2，超出直接回 OVERLOADED</text>
+  <text class="sub" x="628" y="304">⑥ 之前是跨进程：gRPC 往返，端到端延迟的主要来源</text>
+
+  <!-- 其他线程带 -->
+  <rect class="lane" x="234" y="392" width="768" height="182" rx="10" fill="#fdf4e5" stroke="#e8d3a8"/>
+  <text class="lttl2" x="250" y="414">其他线程（不碰 Channel、epoll 注册与连接 Buffer）</text>
+
+  <rect class="box" x="452" y="432" width="180" height="66" rx="8"/>
+  <text class="ttl" x="542" y="458" text-anchor="middle">CQ 轮询线程</text>
+  <text class="sub" x="542" y="477" text-anchor="middle">cq_.Next() 取完成事件</text>
+
+  <rect class="box" x="676" y="432" width="180" height="66" rx="8"/>
+  <text class="ttl" x="766" y="458" text-anchor="middle">ThreadPool 工作线程</text>
+  <text class="sub" x="766" y="477" text-anchor="middle">结果 JSON 序列化</text>
+
+  <text class="sub" x="452" y="528">结果要回到 EventLoop 才能写 socket：queueInLoop + eventfd 唤醒 epoll_wait</text>
+
+  <!-- 推理侧 -->
+  <rect class="zone" x="1044" y="120" width="216" height="380" rx="12" fill="#f4ecfb" stroke="#e0d0f2"/>
+  <text class="zttl" x="1152" y="146" text-anchor="middle">推理侧</text>
+  <text class="sub" x="1152" y="164" text-anchor="middle">Python 进程 · gRPC :50051</text>
+  <rect class="box" x="1062" y="268" width="180" height="88" rx="9"/>
+  <text class="ttl" x="1152" y="298" text-anchor="middle">YOLOv8</text>
+  <text class="sub" x="1152" y="318" text-anchor="middle">解码 JPEG → 推理</text>
+  <text class="sub" x="1152" y="334" text-anchor="middle">返回检测框 + 自身耗时</text>
+
+  <!-- 箭头 1（两条并入） -->
+  <path class="edge" d="M 186 224 L 218 224 L 218 176 L 246 176"/>
+  <path class="edge" d="M 186 340 L 218 340 L 218 196 L 246 196"/>
+  <circle class="hopbg" cx="205" cy="205" r="9"/><text class="hop" x="205" y="209">1</text>
+
+  <!-- 2 3 4 -->
+  <path class="edge" d="M 402 187 L 448 187"/>
+  <circle class="hopbg" cx="425" cy="187" r="9"/><text class="hop" x="425" y="191">2</text>
+  <path class="edge" d="M 604 187 L 650 187"/>
+  <circle class="hopbg" cx="627" cy="187" r="9"/><text class="hop" x="627" y="191">3</text>
+  <path class="edge" d="M 806 187 L 852 187"/>
+  <circle class="hopbg" cx="829" cy="187" r="9"/><text class="hop" x="829" y="191">4</text>
+
+  <!-- 5 出网关到推理 -->
+  <path class="edge" d="M 986 187 L 1016 187 L 1016 300 L 1058 300"/>
+  <circle class="hopbg" cx="1016" cy="240" r="9"/><text class="hop" x="1016" y="244">5</text>
+
+  <!-- 6 推理回到 CQ -->
+  <path class="edge" d="M 1152 356 L 1152 386 L 542 386 L 542 428"/>
+  <circle class="hopbg" cx="1000" cy="386" r="9"/><text class="hop" x="1000" y="390">6</text>
+
+  <!-- 7 CQ -> 线程池 -->
+  <path class="edge" d="M 632 465 L 672 465"/>
+  <circle class="hopbg" cx="652" cy="465" r="9"/><text class="hop" x="652" y="469">7</text>
+
+  <!-- 8 线程池 -> 写回 socket（回到 EventLoop 线程） -->
+  <path class="edge" d="M 766 432 L 766 348 L 430 348 L 430 318"/>
+  <circle class="hopbg" cx="700" cy="348" r="9"/><text class="hop" x="700" y="352">8</text>
+
+  <!-- 9 写回客户端 -->
+  <path class="edge9" d="M 250 268 L 214 268 L 214 224"/>
+  <path class="edge9" d="M 214 268 L 214 340 L 190 340"/>
+  <circle class="hopbg" cx="214" cy="300" r="9"/><text class="hop" x="214" y="304">9</text>
+
+  <!-- 图例 -->
+  <rect x="20" y="524" width="182" height="134" rx="10" fill="#ffffff" stroke="#d8e0e8"/>
+  <text x="34" y="548" font-size="12.5" font-weight="700" fill="#39485a">图例</text>
+  <rect x="34" y="560" width="14" height="14" rx="3" fill="#eaf5ea" stroke="#b9d8b9"/>
+  <text class="lgnd" x="56" y="571">EventLoop 线程：2–5 与 9</text>
+  <rect x="34" y="582" width="14" height="14" rx="3" fill="#fdf4e5" stroke="#e8d3a8"/>
+  <text class="lgnd" x="56" y="593">其他线程：6–7</text>
+  <rect x="34" y="604" width="14" height="14" rx="3" fill="#f4ecfb" stroke="#e0d0f2"/>
+  <text class="lgnd" x="56" y="615">推理侧：5 到 6 之间跨进程</text>
+  <text class="lgnd" x="34" y="641">8 是唯一需要跨线程回投的一跳</text>
+</svg>
