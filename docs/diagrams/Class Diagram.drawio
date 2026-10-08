@@ -1,0 +1,292 @@
+<mxfile host="app.diagrams.net" pages="2">
+  <diagram id="core-classes" name="01 核心类关系">
+    <mxGraphModel dx="1835" dy="1128" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="1900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="core-title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=28;fontStyle=1;fontColor=#1f2937;" value="VisionReactor-CPP 核心类关系" vertex="1">
+          <mxGeometry height="45" width="1100" x="1050" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="core-subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontColor=#6b7280;" value="大画布分层版 · 关系线按独立锚点展开 · H.264 子系统见第 2 页" vertex="1">
+          <mxGeometry height="30" width="1100" x="1050" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="band-control" parent="1" style="swimlane;html=1;rounded=1;startSize=38;horizontal=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=16;opacity=28;" value="01 服务器控制层" vertex="1">
+          <mxGeometry height="330" width="3040" x="80" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="band-gateway" parent="1" style="swimlane;html=1;rounded=1;startSize=38;horizontal=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=16;opacity=28;" value="02 网关与异步业务层" vertex="1">
+          <mxGeometry height="440" width="3040" x="80" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="band-core" parent="1" style="swimlane;html=1;rounded=1;startSize=38;horizontal=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=16;opacity=28;" value="03 Reactor、协议缓冲与资源层" vertex="1">
+          <mxGeometry height="790" width="3040" x="80" y="970" as="geometry" />
+        </mxCell>
+        <mxCell id="server" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;Server&lt;/b&gt;&lt;hr&gt;&lt;b&gt;字段&lt;/b&gt;&lt;br&gt;- EventLoop* loop&lt;br&gt;- Acceptor* acceptor&lt;br&gt;- map&amp;lt;int, shared_ptr&amp;lt;Connection&amp;gt;&amp;gt; conns&lt;br&gt;- unique_ptr&amp;lt;AsyncAIEngine&amp;gt; aiengine&lt;br&gt;- ThreadPool* threadPool&lt;hr&gt;&lt;b&gt;方法&lt;/b&gt;&lt;br&gt;+ handleNewConnection()&lt;br&gt;+ handleDeleteConnection()&lt;br&gt;+ handleOnMessage()" vertex="1">
+          <mxGeometry height="245" width="480" x="1360" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="acceptor" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#82b366;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;Acceptor&lt;/b&gt;&lt;hr&gt;- EventLoop* loop&lt;br&gt;- Socket* lis_sock&lt;br&gt;- Channel* acceptChannel&lt;br&gt;- NewConnectionCallback callback&lt;hr&gt;+ acceptNewConnection()&lt;br&gt;+ setNewConnectionCallback()" vertex="1">
+          <mxGeometry height="260" width="350" x="180" y="575" as="geometry" />
+        </mxCell>
+        <mxCell id="connection" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#82b366;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;Connection&lt;/b&gt;&lt;hr&gt;- StateE state_&lt;br&gt;- EventLoop* loop&lt;br&gt;- Socket* sock / Channel* channel&lt;br&gt;- Buffer* inputBuffer / outputBuffer&lt;br&gt;- FrameContextPtr current_frame_ctx_&lt;hr&gt;+ handleReadEvent() / handleWriteEvent()&lt;br&gt;+ business(AsyncAIEngine*)&lt;br&gt;+ send(const string&amp;amp;)&lt;br&gt;- sendInLoop(const string&amp;amp;)&lt;br&gt;+ handleClose()" vertex="1">
+          <mxGeometry height="330" width="460" x="850" y="545" as="geometry" />
+        </mxCell>
+        <mxCell id="async-engine" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#82b366;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;AsyncAIEngine&lt;/b&gt;&lt;hr&gt;- VisionAI::Stub stub_&lt;br&gt;- CompletionQueue cq_&lt;br&gt;- thread cq_thread&lt;br&gt;- ThreadPool* threadpool&lt;br&gt;- mutex mu_ / active_calls_&lt;hr&gt;+ AnalyzeFrameAsync(...)&lt;br&gt;- AsyncCompleteRpc()&lt;br&gt;+ PrintLatencyLog(...)" vertex="1">
+          <mxGeometry height="300" width="390" x="1710" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="thread-pool" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#b85450;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;ThreadPool&lt;/b&gt;&lt;hr&gt;- vector&amp;lt;thread&amp;gt; workers&lt;br&gt;- queue&amp;lt;function&amp;gt; tasks&lt;br&gt;- mutex / condition_variable&lt;br&gt;- bool stop&lt;hr&gt;+ add(F&amp;amp;&amp;amp;) : future" vertex="1">
+          <mxGeometry height="250" width="360" x="2530" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="socket" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#b85450;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;Socket&lt;/b&gt;&lt;hr&gt;- int _fd&lt;hr&gt;+ bind() / listen()&lt;br&gt;+ accept()&lt;br&gt;+ setNonBlocking()&lt;br&gt;+ fd()" vertex="1">
+          <mxGeometry height="220" width="280" x="130" y="1190" as="geometry" />
+        </mxCell>
+        <mxCell id="channel" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#d6b656;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;Channel&lt;/b&gt;&lt;hr&gt;- weak_ptr&amp;lt;void&amp;gt; tie_&lt;br&gt;- int fd&lt;br&gt;- EventLoop* loop&lt;br&gt;- uint32_t events / revents&lt;br&gt;- readCallback / writeCallback&lt;hr&gt;+ tie(shared_ptr)&lt;br&gt;+ enable/disable Reading/Writing()&lt;br&gt;+ handleEvent()" vertex="1">
+          <mxGeometry height="310" width="370" x="520" y="1135" as="geometry" />
+        </mxCell>
+        <mxCell id="event-loop" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#d6b656;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;EventLoop&lt;/b&gt;&lt;hr&gt;- Epoll* ep&lt;br&gt;- atomic&amp;lt;bool&amp;gt; quit_&lt;br&gt;- thread::id loopThreadId_&lt;br&gt;- int wakeupFd_&lt;br&gt;- Channel* wakeupChannel_&lt;br&gt;- mutex pendingMutex_&lt;br&gt;- vector&amp;lt;function&amp;gt; pendingFunctors_&lt;hr&gt;+ loop() / quit()&lt;br&gt;+ runInLoop() / queueInLoop()&lt;br&gt;+ updateChannel() / removeChannel()&lt;br&gt;- wakeup() / doPendingFunctors()" vertex="1">
+          <mxGeometry height="410" width="440" x="1010" y="1060" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#d6b656;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;Epoll&lt;/b&gt;&lt;hr&gt;- int epoll_fd&lt;br&gt;- vector&amp;lt;epoll_event&amp;gt; events&lt;hr&gt;+ poll(int timeout)&lt;br&gt;+ updateChannel(Channel*)&lt;br&gt;+ removeChannel(Channel*)" vertex="1">
+          <mxGeometry height="200" width="320" x="1070" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="buffer" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#82b366;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;Buffer&lt;/b&gt;&lt;hr&gt;- vector&amp;lt;char&amp;gt; buffer_&lt;br&gt;- size_t readerIndex_ / writerIndex_&lt;hr&gt;+ readFd(int, int*)&lt;br&gt;+ append() / retrieve()&lt;br&gt;+ peekInt32()&lt;br&gt;+ findH264StartCode()" vertex="1">
+          <mxGeometry height="250" width="350" x="1650" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="frame-context" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#82b366;strokeWidth=2;fontSize=14;" value="&lt;b style=&quot;font-size:18px&quot;&gt;FrameContext&lt;/b&gt;&lt;hr&gt;+ trace_id&lt;br&gt;+ t_start / t_parsed&lt;br&gt;+ t_grpc_sent / t_grpc_recv&lt;br&gt;+ t_finish&lt;br&gt;+ t3_python_cost_us" vertex="1">
+          <mxGeometry height="230" width="330" x="2180" y="1170" as="geometry" />
+        </mxCell>
+        <mxCell id="eventfd-note" parent="1" style="shape=note;whiteSpace=wrap;html=1;align=left;spacing=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" value="&lt;b&gt;&amp;lt;&amp;lt;Linux fd&amp;gt;&amp;gt; eventfd&lt;/b&gt;&lt;hr&gt;Worker 写计数器唤醒 epoll_wait&lt;br&gt;EventLoop 排空 eventfd&lt;br&gt;随后执行 pendingFunctors_" vertex="1">
+          <mxGeometry height="230" width="350" x="2670" y="1165" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffffff;strokeColor=#6b7280;fontSize=14;" value="&lt;b&gt;UML 图例&lt;/b&gt;&lt;br&gt;◆ 组合：拥有对象生命周期&lt;br&gt;◇ 聚合：引用但不拥有&lt;br&gt;虚线箭头：调用或依赖&lt;br&gt;&lt;br&gt;&lt;b&gt;线程约束&lt;/b&gt;&lt;br&gt;Connection Buffer、Channel 与 epoll 状态仅由 EventLoop 线程修改。" vertex="1">
+          <mxGeometry height="210" width="350" x="2670" y="1480" as="geometry" />
+        </mxCell>
+        <mxCell id="s-a" edge="1" parent="1" source="server" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=30;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeWidth=2;exitX=0.08;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="acceptor" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1398" y="475" />
+              <mxPoint x="355" y="475" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s-c" edge="1" parent="1" source="server" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=30;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeWidth=2;exitX=0.33;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="connection" value="conns">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1518" y="450" />
+              <mxPoint x="1080" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s-ai" edge="1" parent="1" source="server" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=30;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeWidth=2;exitX=0.67;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="async-engine" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1682" y="470" />
+              <mxPoint x="1905" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s-pool" edge="1" parent="1" source="server" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=30;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeWidth=2;exitX=0.92;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="thread-pool" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1802" y="460" />
+              <mxPoint x="2710" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s-loop" edge="1" parent="1" source="server" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=30;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeWidth=2;exitX=0;exitY=0.55;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="event-loop" value="外部 EventLoop">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1230" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a-socket" edge="1" parent="1" source="acceptor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="socket" value="监听 fd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="268" y="1020" />
+              <mxPoint x="270" y="1020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a-channel" edge="1" parent="1" source="acceptor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" target="channel" value="监听事件">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="443" y="1000" />
+              <mxPoint x="631" y="1000" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a-loop" edge="1" parent="1" source="acceptor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=0;endArrow=none;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" target="event-loop" value="注册 acceptChannel">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="770" />
+              <mxPoint x="650" y="1040" />
+              <mxPoint x="980" y="1040" />
+              <mxPoint x="980" y="1163" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c-socket" edge="1" parent="1" source="connection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.05;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" target="socket" value="连接 fd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="873" y="960" />
+              <mxPoint x="354" y="960" />
+              <mxPoint x="354" y="1160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c-channel" edge="1" parent="1" source="connection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" target="channel" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="965" y="990" />
+              <mxPoint x="798" y="990" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c-loop" edge="1" parent="1" source="connection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=0;endArrow=none;exitX=0.45;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="event-loop" value="线程归属">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1057" y="1015" />
+              <mxPoint x="1120" y="1015" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c-buffer" edge="1" parent="1" source="connection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.35;entryY=0;entryDx=0;entryDy=0;" target="buffer" value="输入/输出各一个">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1172" y="1010" />
+              <mxPoint x="1773" y="1010" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c-frame" edge="1" parent="1" source="connection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.9;exitY=1;exitDx=0;exitDy=0;entryX=0.35;entryY=0;entryDx=0;entryDy=0;" target="frame-context" value="逐帧上下文">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1264" y="950" />
+              <mxPoint x="2296" y="950" />
+              <mxPoint x="2296" y="1140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c-ai" edge="1" parent="1" source="connection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.35;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" target="async-engine" value="发起异步 RPC">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1510" y="660" />
+              <mxPoint x="1510" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ai-pool" edge="1" parent="1" source="async-engine" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=0;endArrow=none;exitX=1;exitY=0.55;exitDx=0;exitDy=0;entryX=0;entryY=0.55;entryDx=0;entryDy=0;" target="thread-pool" value="CQ 结果投递">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2290" y="720" />
+              <mxPoint x="2290" y="718" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="loop-channel" edge="1" parent="1" source="event-loop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0;exitY=0.45;exitDx=0;exitDy=0;entryX=1;entryY=0.35;entryDx=0;entryDy=0;" target="channel" value="拥有 wakeupChannel_">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="1245" />
+              <mxPoint x="950" y="1244" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="channel-loop" edge="1" parent="1" source="channel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" target="event-loop" value="update/remove">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="1368" />
+              <mxPoint x="960" y="1368" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="loop-epoll" edge="1" parent="1" source="event-loop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="epoll" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-channel" edge="1" parent="1" source="epoll" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;startArrow=diamond;startFill=0;endArrow=none;exitX=0;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="channel" value="epoll_event.data.ptr">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="1650" />
+              <mxPoint x="705" y="1650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="loop-eventfd" edge="1" parent="1" source="event-loop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=35;html=1;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.55;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;" target="eventfd-note" value="写入唤醒 / 读取排空">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1286" />
+              <mxPoint x="1530" y="1040" />
+              <mxPoint x="2580" y="1040" />
+              <mxPoint x="2580" y="1269" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="h264-classes" name="02 H.264 子系统">
+    <mxGraphModel dx="2100" dy="1300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="h0" />
+        <mxCell id="h1" parent="h0" />
+        <mxCell id="h-title" value="H.264 Annex B 解析子系统" style="text;html=1;align=center;verticalAlign=middle;fontSize=28;fontStyle=1;fontColor=#1f2937;" vertex="1" parent="h1">
+          <mxGeometry x="550" y="35" width="1000" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="h-subtitle" value="独立页面减少跨层连线；当前属于实验模块，尚未接入 AI 推理主链路" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontColor=#6b7280;" vertex="1" parent="h1">
+          <mxGeometry x="550" y="80" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h-runtime-band" value="在线流式路径（Connection + Buffer）" style="swimlane;html=1;rounded=1;startSize=38;horizontal=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=16;opacity=28;" vertex="1" parent="h1">
+          <mxGeometry x="80" y="150" width="750" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="h-parser-band" value="H.264 解析组件" style="swimlane;html=1;rounded=1;startSize=38;horizontal=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=16;opacity=28;" vertex="1" parent="h1">
+          <mxGeometry x="900" y="150" width="1120" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="h-connection" value="&lt;b style=&quot;font-size:18px&quot;&gt;Connection&lt;/b&gt;&lt;br&gt;&amp;lt;&amp;lt;核心页对象&amp;gt;&amp;gt;&lt;hr&gt;+ processH264Nalus()&lt;br&gt;- inputBuffer : Buffer*&lt;br&gt;&lt;br&gt;连续切分 NALU&lt;br&gt;处理粘包、半包和阈值熔断" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#82b366;strokeWidth=2;fontSize=14;" vertex="1" parent="h1">
+          <mxGeometry x="190" y="260" width="500" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="h-buffer" value="&lt;b style=&quot;font-size:18px&quot;&gt;Buffer&lt;/b&gt;&lt;br&gt;&amp;lt;&amp;lt;核心页对象&amp;gt;&amp;gt;&lt;hr&gt;+ findH264StartCode(start)&lt;br&gt;+ readableBytes() / retrieve()&lt;br&gt;+ peek() / beginWrite()&lt;br&gt;&lt;br&gt;持有 TCP 流式数据" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#82b366;strokeWidth=2;fontSize=14;" vertex="1" parent="h1">
+          <mxGeometry x="190" y="720" width="500" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="h-demuxer" value="&lt;b style=&quot;font-size:18px&quot;&gt;H264Demuxer&lt;/b&gt;&lt;hr&gt;- vector&amp;lt;uint8_t&amp;gt; streamData_&lt;br&gt;- int readIndex_&lt;hr&gt;+ getNextNalu() : NaluUnit&lt;br&gt;- dataBegin() / dataEnd()&lt;br&gt;&lt;br&gt;离线完整流解析（拷贝模式）" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=2;fontSize=14;" vertex="1" parent="h1">
+          <mxGeometry x="1010" y="250" width="390" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="h-unit" value="&lt;b style=&quot;font-size:18px&quot;&gt;NaluUnit&lt;/b&gt;&lt;br&gt;&amp;lt;&amp;lt;struct&amp;gt;&amp;gt;&lt;hr&gt;+ vector&amp;lt;uint8_t&amp;gt; payload&lt;br&gt;+ int type&lt;br&gt;+ isEmpty()&lt;br&gt;&lt;br&gt;拥有 NALU 数据副本" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=2;fontSize=14;" vertex="1" parent="h1">
+          <mxGeometry x="1550" y="250" width="330" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="h-functions" value="&lt;b style=&quot;font-size:18px&quot;&gt;&amp;lt;&amp;lt;free functions&amp;gt;&amp;gt;&lt;/b&gt;&lt;hr&gt;+ findH264StartCode(start, end)&lt;br&gt;+ getNaluType(firstByte)&lt;br&gt;&lt;br&gt;Buffer 与 H264Demuxer 共享&lt;br&gt;无状态、零拷贝搜索" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=2;fontSize=14;" vertex="1" parent="h1">
+          <mxGeometry x="1010" y="730" width="410" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="h-view" value="&lt;b style=&quot;font-size:18px&quot;&gt;NaluView&lt;/b&gt;&lt;br&gt;&amp;lt;&amp;lt;struct&amp;gt;&amp;gt;&lt;hr&gt;+ const uint8_t* data&lt;br&gt;+ size_t size&lt;br&gt;+ int type&lt;br&gt;+ valid()&lt;br&gt;&lt;br&gt;不拥有底层数据" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=2;fontSize=14;" vertex="1" parent="h1">
+          <mxGeometry x="1550" y="730" width="330" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="hc-buffer" value="组合：持有输入 Buffer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=40;html=1;startArrow=diamond;startFill=1;endArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="h1" source="h-connection" target="h-buffer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hc-functions" value="调用共享函数" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=40;html=1;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.55;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" edge="1" parent="h1" source="h-connection" target="h-functions">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="403" />
+              <mxPoint x="850" y="818" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hb-functions" value="委托搜索" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=40;html=1;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.55;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="h1" source="h-buffer" target="h-functions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hd-functions" value="委托搜索" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=40;html=1;dashed=1;endArrow=open;endFill=0;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.35;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="h1" source="h-demuxer" target="h-functions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hd-unit" value="产出（拷贝）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=40;html=1;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="h1" source="h-demuxer" target="h-unit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hc-view" value="可用于零拷贝描述" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jettySize=40;html=1;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" edge="1" parent="h1" source="h-connection" target="h-view">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="325" />
+              <mxPoint x="780" y="650" />
+              <mxPoint x="1500" y="650" />
+              <mxPoint x="1500" y="818" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

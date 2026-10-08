@@ -1,0 +1,35 @@
+# 统一行尾策略
+#
+# 背景（2026-10-05 实测）：本仓库的工作区曾被整体转成 CRLF（31 个文本文件），
+# 而仓库里存的是 LF。因为 git 的 stat 缓存（大小 + 时间戳）全部命中，
+# `git status` 一直显示"干净"，把这件事掩盖了很久，直到有文件被 touch 才暴露。
+#
+# 规则：仓库内一律 LF，检出到任何平台都是 LF；提交时自动把 CRLF 归一化成 LF。
+# 这样即使 Windows 侧的编辑器把文件写回 CRLF，也不会污染仓库、不会被误判为改动。
+
+* text=auto eol=lf
+
+# 明确二进制/非文本类型，避免被当文本处理
+*.pt        binary
+*.pth       binary
+*.onnx      binary
+*.jpeg      binary
+*.jpg       binary
+*.png       binary
+*.gif       binary
+*.webp      binary
+*.pdf       binary
+*.drawio    -text
+
+# 明确的文本类型（可读性与 diff 友好）
+*.md        text
+*.cpp       text
+*.h         text
+*.py        text
+*.js        text
+*.css       text
+*.html      text
+*.proto     text
+*.sh        text
+Makefile    text
+CMakeLists.txt text
