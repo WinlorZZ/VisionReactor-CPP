@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1340" height="830" viewBox="0 0 1340 830"
+     font-family="'Segoe UI','Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5a6672"/>
+    </marker>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b4"/>
+    </marker>
+    <style>
+      .box   { fill:#ffffff; stroke:#8f9db0; stroke-width:1.4; }
+      .key   { fill:#ffffff; stroke-width:2; }
+      .txt   { font-size:13px; fill:#16212e; }
+      .sub   { font-size:11px; fill:#66737f; }
+      .badge { fill:#2f6fb5; }
+      .btxt  { font-size:13px; font-weight:700; fill:#ffffff; text-anchor:middle; }
+      .flow  { stroke:#5a6672; stroke-width:1.8; fill:none; marker-end:url(#a); }
+      .back  { stroke:#9aa7b4; stroke-width:1.5; fill:none; stroke-dasharray:7 5; marker-end:url(#a2); }
+      .ltitle{ font-size:14.5px; font-weight:700; fill:#16212e; }
+      .lname { font-size:13px; font-weight:700; fill:#1b2733; }
+      .lbody { font-size:11.5px; fill:#4c5866; }
+      .lcode { font-size:11px; fill:#2f6fb5; }
+      .row   { fill:#fbfcfd; stroke:#e2e8ee; }
+    </style>
+  </defs>
+
+  <text x="30" y="46" font-size="21" font-weight="700" fill="#16212e">VisionReactor 关键设计地图</text>
+  <text x="30" y="70" font-size="12.5" fill="#5d6b7a">六处关键设计分别落在链路的哪一步。圆圈里的编号与右侧说明一一对应；灰色步骤是普通流程，蓝色步骤是「关键设计」发生的地方。</text>
+
+  <!-- ===== 链路（左列）===== -->
+  <!-- 01 -->
+  <rect class="box" x="64" y="106" width="430" height="56" rx="8"/>
+  <text class="txt" x="84" y="130">客户端发帧</text>
+  <text class="sub" x="84" y="148">TCP：4 字节大端长度前缀 ｜ WebSocket：二进制帧 + 掩码</text>
+
+  <!-- 02 -->
+  <rect class="key" x="64" y="172" width="430" height="56" rx="8" stroke="#2f6fb5"/>
+  <circle class="badge" cx="40" cy="200" r="13"/><text class="btxt" x="40" y="205">1</text>
+  <text class="txt" x="84" y="196">epoll 边缘触发报告可读</text>
+  <text class="sub" x="84" y="214">必须一次读到 EAGAIN —— 一个线程管所有连接</text>
+
+  <!-- 03 -->
+  <rect class="key" x="64" y="238" width="430" height="56" rx="8" stroke="#2f6fb5"/>
+  <circle class="badge" cx="40" cy="266" r="13"/><text class="btxt" x="40" y="271">2</text>
+  <text class="txt" x="84" y="262">readv 双缓冲读进 Buffer</text>
+  <text class="sub" x="84" y="280">内部 vector + 栈上 64 KB 一起挂上，尽量一次读完</text>
+
+  <!-- 04 -->
+  <rect class="box" x="64" y="304" width="430" height="56" rx="8"/>
+  <text class="txt" x="84" y="328">拆出一个完整帧</text>
+  <text class="sub" x="84" y="346">认长度前缀 / 解 WebSocket 掩码；不够就 return，游标不动</text>
+
+  <!-- 05 -->
+  <rect class="key" x="64" y="370" width="430" height="56" rx="8" stroke="#c08a2a"/>
+  <circle class="badge" cx="40" cy="398" r="13" fill="#c08a2a"/><text class="btxt" x="40" y="403">6</text>
+  <text class="txt" x="84" y="394">在途检查：每连接 ≤ 2</text>
+  <text class="sub" x="84" y="412">超出当场回 OVERLOADED，不排队（背压阀门）</text>
+
+  <!-- 06 -->
+  <rect class="key" x="64" y="436" width="430" height="56" rx="8" stroke="#2f6fb5"/>
+  <circle class="badge" cx="40" cy="464" r="13"/><text class="btxt" x="40" y="469">3</text>
+  <text class="txt" x="84" y="460">异步 gRPC 发出请求</text>
+  <text class="sub" x="84" y="478">CompletionQueue + tag 登记，发出后立刻返回</text>
+
+  <!-- 07 -->
+  <rect class="box" x="64" y="502" width="430" height="56" rx="8" stroke-dasharray="6 4"/>
+  <text class="txt" x="84" y="526">［跨进程］Python YOLOv8 推理</text>
+  <text class="sub" x="84" y="544">实测这一段占端到端的绝大部分（14.3 ms / 16.7 ms）</text>
+
+  <!-- 08 -->
+  <rect class="key" x="64" y="568" width="430" height="56" rx="8" stroke="#2f6fb5"/>
+  <circle class="badge" cx="40" cy="596" r="13"/><text class="btxt" x="40" y="601">3</text>
+  <text class="txt" x="84" y="592">CQ 线程取到完成事件 → 线程池序列化 JSON</text>
+  <text class="sub" x="84" y="610">CQ 线程只负责取事件，重活丢给线程池</text>
+
+  <!-- 09 -->
+  <rect class="key" x="64" y="634" width="430" height="56" rx="8" stroke="#2f6fb5"/>
+  <circle class="badge" cx="40" cy="662" r="13"/><text class="btxt" x="40" y="667">4</text>
+  <text class="txt" x="84" y="658">queueInLoop + eventfd 回投 Reactor 线程</text>
+  <text class="sub" x="84" y="676">跨线程唯一的通道：写 eventfd 唤醒阻塞在 epoll_wait 的循环</text>
+
+  <!-- 10 -->
+  <rect class="key" x="64" y="700" width="430" height="56" rx="8" stroke="#2f6fb5"/>
+  <circle class="badge" cx="40" cy="728" r="13"/><text class="btxt" x="40" y="733">5</text>
+  <text class="txt" x="84" y="724">回到 EventLoop 线程写回 socket</text>
+  <text class="sub" x="84" y="742">回调期间对象还活着由 Channel::tie 的 weak_ptr 保证</text>
+
+  <!-- 竖向箭头 -->
+  <path class="flow" d="M 279 162 L 279 170"/>
+  <path class="flow" d="M 279 228 L 279 236"/>
+  <path class="flow" d="M 279 294 L 279 302"/>
+  <path class="flow" d="M 279 360 L 279 368"/>
+  <path class="flow" d="M 279 426 L 279 434"/>
+  <path class="flow" d="M 279 492 L 279 500"/>
+  <path class="flow" d="M 279 558 L 279 566"/>
+  <path class="flow" d="M 279 624 L 279 632"/>
+  <path class="flow" d="M 279 690 L 279 698"/>
+
+  <!-- 回程：响应回到客户端 -->
+  <path class="back" d="M 64 728 L 26 728 L 26 134 L 62 134"/>
+  <text class="sub" x="34" y="430" transform="rotate(-90 34 430)" text-anchor="middle">JSON 结果回到客户端</text>
+
+  <!-- ===== 说明（右列）===== -->
+  <text class="ltitle" x="560" y="118">六处关键设计</text>
+  <text class="sub" x="560" y="138">编号 = 左列对应的步骤；代码位置是完整版（main）里的行号</text>
+
+  <!-- ① -->
+  <rect class="row" x="560" y="152" width="740" height="86" rx="10"/>
+  <circle class="badge" cx="592" cy="195" r="14"/><text class="btxt" x="592" y="200">1</text>
+  <text class="lname" x="620" y="182">单 Reactor + 边缘触发（ET）</text>
+  <text class="lbody" x="620" y="202">一个线程管所有连接：省掉所有锁，代价是绝不能被阻塞。</text>
+  <text class="lbody" x="620" y="220">ET 下必须一次读空内核缓冲区，否则不再有可读事件。</text>
+  <text class="lcode" x="1180" y="182">EventLoop.h:11-40</text>
+
+  <!-- ② -->
+  <rect class="row" x="560" y="248" width="740" height="86" rx="10"/>
+  <circle class="badge" cx="592" cy="291" r="14"/><text class="btxt" x="592" y="296">2</text>
+  <text class="lname" x="620" y="278">双游标 Buffer</text>
+  <text class="lbody" x="620" y="298">vector + 读/写游标 + 8 字节预留头；拆包与回包都不搬数据。</text>
+  <text class="lbody" x="620" y="316">readv 把内部可写空间与栈上 64 KB 一次挂上，减少系统调用。</text>
+  <text class="lcode" x="1180" y="278">Buffer.h:10-16,138-175</text>
+
+  <!-- ③ -->
+  <rect class="row" x="560" y="344" width="740" height="86" rx="10"/>
+  <circle class="badge" cx="592" cy="387" r="14"/><text class="btxt" x="592" y="392">3</text>
+  <text class="lname" x="620" y="374">异步 gRPC：CompletionQueue + tag 表</text>
+  <text class="lbody" x="620" y="394">发起后立刻返回，Reactor 线程从不等待 RPC（否则全连接卡住）。</text>
+  <text class="lbody" x="620" y="412">tag 表保住 Call 对象；结果丢线程池，CQ 线程只取事件。</text>
+  <text class="lcode" x="1180" y="374">AsyncAIEngine.cpp:35-140</text>
+
+  <!-- ④ -->
+  <rect class="row" x="560" y="440" width="740" height="86" rx="10"/>
+  <circle class="badge" cx="592" cy="483" r="14"/><text class="btxt" x="592" y="488">4</text>
+  <text class="lname" x="620" y="470">eventfd + queueInLoop</text>
+  <text class="lbody" x="620" y="490">跨线程唯一的通道：别的线程把闭包投进队列，再写 eventfd</text>
+  <text class="lbody" x="620" y="508">唤醒阻塞在 epoll_wait 的 Reactor；连接状态只有一个所有者。</text>
+  <text class="lcode" x="1180" y="470">EventLoop.cpp:15-24</text>
+
+  <!-- ⑤ -->
+  <rect class="row" x="560" y="536" width="740" height="86" rx="10"/>
+  <circle class="badge" cx="592" cy="579" r="14"/><text class="btxt" x="592" y="584">5</text>
+  <text class="lname" x="620" y="566">weak_ptr + Channel::tie</text>
+  <text class="lbody" x="620" y="586">回调进 guard 前先 lock：对象活着才执行，死了直接跳过。</text>
+  <text class="lbody" x="620" y="604">用 weak 而非 shared：不延长生命周期，避免循环引用与泄漏。</text>
+  <text class="lcode" x="1180" y="566">Channel.cpp:22-24,57-67</text>
+
+  <!-- ⑥ -->
+  <rect class="row" x="560" y="632" width="740" height="86" rx="10"/>
+  <circle class="badge" cx="592" cy="675" r="14" fill="#c08a2a"/><text class="btxt" x="592" y="680">6</text>
+  <text class="lname" x="620" y="662">在途上限 2（背压）</text>
+  <text class="lbody" x="620" y="682">超限当场回 OVERLOADED，不排队——排队只是把积压挪个地方。</text>
+  <text class="lbody" x="620" y="700">完整版没有 RPC 截止时间，卡住的推理会让额度不归还（精简版补了 2000 ms）。</text>
+  <text class="lcode" x="1180" y="662">Connection.h:102-103</text>
+
+  <text class="sub" x="560" y="745">注：这张是抽象概念图——只保留「关键设计落在哪一步」。每一步的完整数据流（九跳）见 docs/diagrams/架构分层.svg。</text>
+  <text class="sub" x="560" y="765">灰色步骤 = 普通流程；蓝色边框/编号 = 关键设计发生处；橙色 6 号 = 背压策略。</text>
+</svg>
